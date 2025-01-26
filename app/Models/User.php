@@ -3,14 +3,18 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserGroups;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject, MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasUuids;
 
     /**
      * The attributes that are mass assignable.
@@ -20,7 +24,10 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'um_email',
         'password',
+        'github_id',
+        'groupe',
     ];
 
     /**
@@ -43,6 +50,33 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'groupe' => UserGroups::class,
         ];
+    }
+
+    public function rules()
+    {
+        return [
+            'name' => 'required|string',
+            'email' => 'required|email|unique:users',
+            'um_email' => 'required|email|unique:users|ends_with:umontpellier.fr',
+            'password' => 'string|min:8|uppercase|lowercase|number|special|uncompromised',
+            'github_id' => 'nullable|string',
+            'groupe' => 'required|enum:' . UserGroups::class,
+        ];
+    }
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
+
+    public function sendEmailVerificationNotification(){
+        //TODO
     }
 }
