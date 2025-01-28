@@ -16,11 +16,25 @@ enum MMIIBodyPart: string
     public function requiresColor(): bool
     {
         return in_array($this, [
+            self::BOUCHE,
             self::CHEVEUX,
-            self::MAQUILLAGE,
             self::PILOSITE,
             self::TETE,
             self::YEUX
         ]);
+    }
+
+    public function mixBlenMode(): string
+    {
+        return match ($this) {
+            self::BOUCHE => 'multiply',
+            self::CHEVEUX => 'multiply',
+            self::MAQUILLAGE => 'none',
+            self::NEZ => 'none',
+            self::PARTICULARITES => 'none',
+            self::PILOSITE => 'multiply',
+            self::TETE => 'multiply',
+            self::YEUX => 'hard-light',
+        };
     }
 }

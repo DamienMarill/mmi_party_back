@@ -32,7 +32,8 @@ class MMIIService
             $parts[$part->value] = [
                 'files' => $files,
                 'requiresColor' => $part->requiresColor(),
-                'availableColors' => $colors
+                'availableColors' => $colors,
+                'mixBlendMode' => $part->mixBlenMode()
             ];
         }
 
