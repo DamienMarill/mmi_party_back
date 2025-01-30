@@ -12,6 +12,7 @@ class Mmii extends Model
     protected $fillable = [
         'image',
         'shape',
+        'background',
     ];
 
     protected $casts = [
@@ -23,6 +24,7 @@ class Mmii extends Model
         return [
             'image' => 'required|string',
             'shape' => 'required|array',
+            'background' => 'required|string',
         ];
     }
 

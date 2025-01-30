@@ -6,29 +6,34 @@ use App\Enums\LootboxTypes;
 use App\Models\Lootbox;
 use App\Services\LootboxService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
 
+    private LootboxService $availabilityService;
+
+    public function __construct(LootboxService $availabilityService)
+    {
+        $this->availabilityService = $availabilityService;
+    }
+
     public function getMe()
     {
-        return auth()->user();
+        return auth()->user()->load('mmii');
     }
 
     public function getLoot()
     {
-        $lootboxService = new LootboxService();
-        // vérifier si l'utilisateur a une lootbox
-        $nextLootbox = $lootboxService->getNextLootbox(auth()->user());
-        if (!$nextLootbox['status']['available']) {
+
+        if ($this->availabilityService->checkAvailability(auth()->user()->id)['available'] === false) {
             return response()->json([
-                'message' => $nextLootbox['message'].' '.$nextLootbox['remaining_time'],
-                'detail' => $nextLootbox
+                'error' => 'You can\'t open a lootbox right now'
             ], 400);
         }
 
         // tirer la lootbox
-        $loots = $lootboxService->generateLootbox();
+        $loots = $this->availabilityService->generateLootbox();
 
         // ajouter les cartes à la collection de l'utilisateur
         $lootbox = new Lootbox();
@@ -46,5 +51,16 @@ class UserController extends Controller
         }
 
         return $lootbox->load(['cards', 'cards.cardVersion', 'cards.cardVersion.cardTemplate', 'cards.cardVersion.cardTemplate.mmii']);
+    }
+
+    public function checkAvailability(Request $request)
+    {
+        $result = $this->availabilityService->checkAvailability(auth()->user()->id);
+
+        return response()->json([
+            'available' => $result['available'],
+            'nextAvailableTime' => $result['nextTime'],
+            'reason' => $result['reason']
+        ]);
     }
 }

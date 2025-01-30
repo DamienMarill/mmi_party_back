@@ -78,4 +78,11 @@ class CardInstance extends Model
                 ->join('card_versions', 'card_templates.id', '=', 'card_versions.card_template_id')
                 ->whereColumn('card_versions.id', 'card_instances.card_version_id'));
     }
+
+    public function scopeGroupByCardVersion(Builder $query): Builder
+    {
+        return $query->select('card_version_id')
+                    ->selectRaw('COUNT(*) as count')
+                    ->groupBy('card_version_id');
+    }
 }

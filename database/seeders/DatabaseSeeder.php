@@ -18,14 +18,32 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
+        Mmii::factory(148)->create();
         //users
         User::factory(10)->mmi1()->create();
         User::factory(20)->mmi2()->create();
         User::factory(20)->mmi3()->create();
         User::factory(5)->staff()->create();
         User::factory(5)->student()->create();
-
-        Mmii::factory(50+52+41)->create();
 
         for($i = 0; $i < 50; $i++) {
             CardTemplate::factory()->student()->withLevel(1)->withMmii(Mmii::inRandomOrder()->first())->create();

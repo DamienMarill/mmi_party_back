@@ -29,6 +29,7 @@ Route::group(['middleware' => 'auth:api'], function () {
     Route::group(['prefix' => '/mmii'], function (){
         Route::group(['prefix' => '/parts'], function () {
             Route::get('/', [MMIIPartsController::class, 'index']);
+            Route::get('/backgrounds', [MMIIPartsController::class, 'indexBackgrounds']);
         });
     });
 

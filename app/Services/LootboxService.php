@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\LootboxTypes;
 use App\Models\CardTemplate;
 use App\Models\CardVersion;
 use App\Models\Lootbox;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 
 class LootboxService
 {
@@ -83,136 +86,103 @@ class LootboxService
         });
     }
 
-    public function canOpenLootbox(User $user): array
+    private array $availableTimes;
+    private int $availabilityPeriod;
+
+    public function __construct()
     {
-        $now = now();
-        $result = [];
+        $this->availableTimes = Config::get('app.lootbox_times', []);
+        $this->availabilityPeriod = Config::get('app.lootbox_avaibility', 24);
+    }
 
-        // On récupère les dernières lootboxes créées pour chaque horaire
-        foreach (config('app.lootbox_times') as $time) {
-            $targetTime = Carbon::createFromFormat('H:i', $time);
-            $todayTarget = Carbon::today()->setHour($targetTime->hour)->setMinute($targetTime->minute);
+    public function checkAvailability(string $userId): array
+    {
+        $now = Carbon::now();
+        $periodStart = $now->copy()->subHours($this->availabilityPeriod);
 
-            // Si on n'a pas encore atteint l'heure aujourd'hui, on check celle d'hier
-            $referenceDate = $now->lt($todayTarget)
-                ? $todayTarget->subDay()
-                : $todayTarget;
+        // Compte les boosters quotidiens ouverts pendant la période
+        $openedCount = Lootbox::where('user_id', $userId)
+            ->where('type', LootboxTypes::QUOTIDIAN->value)
+            ->whereBetween('created_at', [$periodStart, $now])
+            ->count();
 
-            // On cherche la dernière lootbox créée pour cet horaire
-            $lootbox = Lootbox::where('created_at', '>=', $referenceDate->copy()->subDay())
-                ->where('created_at', '<=', $referenceDate->copy()->addMinutes(5))
-                ->latest()
-                ->first();
+        Log::info('Opened count: ' . $openedCount.' '.$periodStart.' '.$now);
 
-            if (!$lootbox) {
-                // Pas de lootbox créée pour cet horaire
-                $result[$time] = [
-                    'available' => $now->gte($referenceDate),
-                    'message' => 'Lootbox pas encore créée',
-                    'next_reset' => null
-                ];
-                continue;
+        // Si le joueur a ouvert moins de boosters que d'horaires disponibles
+        if ($openedCount < count($this->availableTimes)) {
+            // Vérifie si on est dans une plage horaire valide
+            $currentTime = $now->format('H:i');
+            $isTimeValid = false;
+            $nextTime = null;
+
+            foreach ($this->availableTimes as $time) {
+                if ($this->isWithinTimeRange($currentTime, $time)) {
+                    $isTimeValid = true;
+                    break;
+                }
             }
 
-            // On vérifie si l'utilisateur a déjà ouvert cette lootbox
-            $hasOpened = $user->openedLootboxes()
-                ->where('lootbox_id', $lootbox->id)
-                ->exists();
-
-            // On vérifie si la lootbox est encore disponible
-            $expiresAt = $lootbox->created_at->addHours(config('app.lootbox_avaibility'));
-            $isExpired = $now->gt($expiresAt);
-
-            $result[$time] = [
-                'available' => !$hasOpened && !$isExpired && $now->gte($referenceDate),
-                'message' => $this->getLootboxMessage($hasOpened, $isExpired),
-                'next_reset' => $this->getNextResetTime($time)
-            ];
-        }
-
-        return $result;
-    }
-
-    private function getLootboxMessage(bool $hasOpened, bool $isExpired): string
-    {
-        if ($hasOpened) return 'Vous avez déjà ouvert cette lootbox';
-        if ($isExpired) return 'Cette lootbox a expiré';
-        return 'Lootbox disponible';
-    }
-
-    private function getNextResetTime(string $time): Carbon
-    {
-        $now = now();
-        $targetTime = Carbon::createFromFormat('H:i', $time);
-        $nextReset = Carbon::today()
-            ->setHour($targetTime->hour)
-            ->setMinute($targetTime->minute);
-
-        if ($now->gt($nextReset)) {
-            $nextReset->addDay();
-        }
-
-        return $nextReset;
-    }
-
-    public function getNextLootbox(User $user): ?array
-    {
-        $status = $this->canOpenLootbox($user);
-        $now = now();
-
-        // On filtre les lootboxes disponibles
-        $availableLootboxes = collect($status)->filter(function ($lootbox) {
-            return $lootbox['available'];
-        });
-
-        if ($availableLootboxes->isNotEmpty()) {
-            // Si on a des lootboxes disponibles, on prend celle qui expire le plus tôt
-            $nextTime = $availableLootboxes->keys()->min();
+            if (!$isTimeValid) {
+                $nextTime = $this->getNextAvailableTime($currentTime);
+            }
 
             return [
-                'time' => $nextTime,
-                'status' => $status[$nextTime],
-                'type' => 'available',
-                'message' => 'Lootbox disponible à ouvrir',
-                'remaining_time' => $this->calculateRemainingTime($nextTime)
+                'available' => $isTimeValid,
+                'nextTime' => $nextTime,
+                'reason' => $isTimeValid ? null : 'wrong_time'
             ];
         }
 
-        // Sinon on cherche la prochaine lootbox à s'ouvrir
-        $nextReset = collect($status)
-            ->map(fn ($lootbox) => $lootbox['next_reset'])
-            ->filter()
-            ->min();
-
-        if ($nextReset) {
-            $nextTime = $nextReset->format('H:i');
-
-            return [
-                'time' => $nextTime,
-                'status' => $status[$nextTime],
-                'type' => 'upcoming',
-                'message' => 'Prochaine lootbox disponible',
-                'remaining_time' => $now->diffForHumans($nextReset)
-            ];
-        }
-
-        return null;
+        // Le joueur a déjà ouvert tous ses boosters
+        return [
+            'available' => false,
+            'nextTime' => $this->getNextRefreshTime($periodStart),
+            'reason' => 'max_reached'
+        ];
     }
 
-    private function calculateRemainingTime(string $time): string
+    private function isWithinTimeRange(string $current, string $targetTime): bool
     {
-        $now = now();
-        $lootbox = Lootbox::where('created_at', '>=', now()->subDay())
-            ->where('created_at', '<=', now())
-            ->whereRaw("DATE_FORMAT(created_at, '%H:%i') = ?", [$time])
-            ->latest()
-            ->first();
+        $currentMinutes = $this->timeToMinutes($current);
+        $targetMinutes = $this->timeToMinutes($targetTime);
 
-        if (!$lootbox) {
-            return 'Non disponible';
+        // Donne une fenêtre de 30 minutes pour ouvrir le booster
+        return abs($currentMinutes - $targetMinutes) <= 15;
+    }
+
+    private function timeToMinutes(string $time): int
+    {
+        [$hours, $minutes] = explode(':', $time);
+        return (int)$hours * 60 + (int)$minutes;
+    }
+
+    private function getNextAvailableTime(string $currentTime): string
+    {
+        $currentMinutes = $this->timeToMinutes($currentTime);
+        $nextTime = null;
+        $minDiff = PHP_INT_MAX;
+
+        foreach ($this->availableTimes as $time) {
+            $targetMinutes = $this->timeToMinutes($time);
+
+            // Si l'heure est déjà passée, on ajoute 24h
+            if ($targetMinutes <= $currentMinutes) {
+                $targetMinutes += 24 * 60;
+            }
+
+            $diff = $targetMinutes - $currentMinutes;
+            if ($diff < $minDiff) {
+                $minDiff = $diff;
+                $nextTime = $time;
+            }
         }
 
-        $expiresAt = $lootbox->created_at->addHours(config('app.lootbox_avaibility'));
-        return $now->diffForHumans($expiresAt);
+        return $nextTime;
+    }
+
+    private function getNextRefreshTime(Carbon $periodStart): string
+    {
+        // Retourne l'heure à laquelle le prochain booster sera disponible
+        return $periodStart->addHours($this->availabilityPeriod)->format('H:i');
     }
 }

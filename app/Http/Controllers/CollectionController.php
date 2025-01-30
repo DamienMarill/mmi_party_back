@@ -14,7 +14,11 @@ class CollectionController extends Controller
      */
     public function index()
     {
-        return auth()->user()->collection()->orderByCardAttributes()->get();
+        return auth()->user()
+                    ->collection()
+                    ->groupByCardVersion()
+                    ->orderByCardAttributes()
+                    ->get();
     }
 
     /**

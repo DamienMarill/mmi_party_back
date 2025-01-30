@@ -36,7 +36,7 @@ class CardTemplateFactory extends Factory
         $level = $this->faker->numberBetween(1, 3);
 
         return [
-            'name' => "MMI{$level} " . $this->faker->name(),
+            'name' => $this->faker->name(),
             'type' => CardTypes::STUDENT,
             'level' => $level,
             'stats' => StatsValidator::generate($level),
@@ -49,7 +49,7 @@ class CardTemplateFactory extends Factory
     private function staffCard(): array
     {
         return [
-            'name' => "Prof. " . $this->faker->name(),
+            'name' => $this->faker->name(),
             'type' => CardTypes::STAFF,
             'level' => null,
             'stats' => null,

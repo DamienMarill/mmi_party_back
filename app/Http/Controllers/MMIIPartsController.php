@@ -17,6 +17,13 @@ class MMIIPartsController extends Controller
         return $mmiiService->getAvailablePartsWithAssets();
     }
 
+    public function indexBackgrounds()
+    {
+        $mmiiService = new MMIIService();
+
+        return $mmiiService->getBackgroundsFiles();
+    }
+
     /**
      * Display the specified resource.
      */

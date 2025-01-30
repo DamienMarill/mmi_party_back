@@ -84,4 +84,9 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         return $this->hasMany(CardInstance::class)
                     ->with(['cardVersion', 'cardVersion.cardTemplate', 'cardVersion.cardTemplate.mmii']);
     }
+
+    public function mmii()
+    {
+        return $this->belongsTo(MMII::class);
+    }
 }
