@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\MMIIPartsController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ Route::group(['prefix' => 'auth'], function () {
 Route::group(['middleware' => 'auth:api'], function () {
     Route::group(['prefix' => '/me'], function (){
         Route::get('/', [UserController::class, 'getMe']);
+        Route::get('/loot', [UserController::class, 'getLoot']);
 //    Route::put('/', [AuthController::class, 'update']);
 //    Route::put('/password', [AuthController::class, 'updatePassword']);
 //    Route::post('/logout', [AuthController::class, 'logout']);
@@ -28,6 +30,11 @@ Route::group(['middleware' => 'auth:api'], function () {
         Route::group(['prefix' => '/parts'], function () {
             Route::get('/', [MMIIPartsController::class, 'index']);
         });
+    });
+
+    Route::group(['prefix' => '/collection'], function (){
+        Route::get('/', [CollectionController::class, 'index']);
+        Route::get('/{cardVersion}', [CollectionController::class, 'show']);
     });
 });
 
@@ -46,5 +53,6 @@ Route::get('assets/{path}', function($path) {
     // Renvoie le fichier avec les bons headers
     return response($file)
         ->header('Content-Type', $mimeType)
-        ->header('Access-Control-Allow-Origin', '*');
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Cache-Control', 'public, max-age=31536000');
 })->where('path', '.*'); // Permet les sous-dossiers

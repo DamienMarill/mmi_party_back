@@ -50,6 +50,15 @@ class MMIIService
             ->toArray();
     }
 
+    public function getBackgroundsFiles(): array
+    {
+        return collect(Storage::disk('public')->files("/background"))
+            ->map(fn($file) => basename($file))
+            ->filter(fn($file) => str_ends_with($file, '.jpg'))
+            ->values()
+            ->toArray();
+    }
+
     public function validateShapeJson(array $shape): bool
     {
         try {

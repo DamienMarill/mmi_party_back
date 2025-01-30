@@ -150,5 +150,145 @@ return[
             "#ff8c00", // Orange foncé
             "#4169e1"  // Bleu royal
         ],
+        "sourcils" => [
+            '#2C222B',
+            '#3B1C1C',
+            '#4A2C2A',
+            '#5C3C24',
+            '#6B4423',
+            '#E6BE8A',
+            '#DAA520',
+            '#C5A572',
+            '#E8B741',
+            '#D4915D',
+            '#8B3021',
+            '#D4652F',
+            '#922724',
+            '#B7502D',
+            '#C04000',
+            '#090806',
+            '#1C1C1E',
+            '#0D0D0D',
+            '#FFB6C1',
+            '#4169E1',
+            '#663399',
+            '#2ECC71',
+            '#FF0033',
+            '#C0C0C0',
+            '#E6E6FA',
+            '#40E0D0',
+        ],
+        "pull" => [
+            // Basiques
+            "#FFFFFF", // Blanc
+            "#000000", // Noir
+            "#808080", // Gris
+            "#D3D3D3", // Gris clair
+            "#404040", // Gris foncé
+            // Tons chauds
+            "#8B4513", // Marron
+            "#A0522D", // Marron sienna
+            "#DEB887", // Beige
+            "#F5DEB3", // Beige clair
+            "#CD853F", // Brun clair
+
+            // Blues
+            "#000080", // Bleu marine
+            "#1B4D90", // Bleu royal
+            "#4682B4", // Bleu acier
+            "#6495ED", // Bleu cornflower
+            "#87CEEB", // Bleu ciel
+
+            // Rouges
+            "#8B0000", // Rouge foncé
+            "#B22222", // Rouge brique
+            "#DC143C", // Cramoisi
+            "#CD5C5C", // Rouge indien
+            "#FFB6C1", // Rose clair
+
+            // Verts
+            "#006400", // Vert foncé
+            "#228B22", // Vert forêt
+            "#32CD32", // Vert lime
+            "#90EE90", // Vert clair
+            "#556B2F", // Vert olive foncé
+
+            // Violets
+            "#4B0082", // Indigo
+            "#800080", // Violet
+            "#8B008B", // Magenta foncé
+            "#BA55D3", // Orchidée
+            "#DDA0DD", // Prune
+
+            // Jaunes & Oranges
+            "#DAA520", // Jaune doré
+            "#CD853F", // Orange brun
+            "#D2691E", // Chocolat
+            "#FF8C00", // Orange foncé
+            "#FFD700", // Or
+
+            // Tons pastels
+            "#E6E6FA", // Lavande
+            "#98FB98", // Vert pastel
+            "#DDA0DD", // Violet pastel
+            "#F0E68C", // Jaune pastel
+            "#FFB6C1"  // Rose pastel
+        ],
+        "particularites" => [
+            // Basiques
+            "#FFFFFF", // Blanc
+            "#000000", // Noir
+            "#808080", // Gris
+            "#D3D3D3", // Gris clair
+            "#404040", // Gris foncé
+            // Tons chauds
+            "#8B4513", // Marron
+            "#A0522D", // Marron sienna
+            "#DEB887", // Beige
+            "#F5DEB3", // Beige clair
+            "#CD853F", // Brun clair
+
+            // Blues
+            "#000080", // Bleu marine
+            "#1B4D90", // Bleu royal
+            "#4682B4", // Bleu acier
+            "#6495ED", // Bleu cornflower
+            "#87CEEB", // Bleu ciel
+
+            // Rouges
+            "#8B0000", // Rouge foncé
+            "#B22222", // Rouge brique
+            "#DC143C", // Cramoisi
+            "#CD5C5C", // Rouge indien
+            "#FFB6C1", // Rose clair
+
+            // Verts
+            "#006400", // Vert foncé
+            "#228B22", // Vert forêt
+            "#32CD32", // Vert lime
+            "#90EE90", // Vert clair
+            "#556B2F", // Vert olive foncé
+
+            // Violets
+            "#4B0082", // Indigo
+            "#800080", // Violet
+            "#8B008B", // Magenta foncé
+            "#BA55D3", // Orchidée
+            "#DDA0DD", // Prune
+
+            // Jaunes & Oranges
+            "#DAA520", // Jaune doré
+            "#CD853F", // Orange brun
+            "#D2691E", // Chocolat
+            "#FF8C00", // Orange foncé
+            "#FFD700", // Or
+
+            // Tons pastels
+            "#E6E6FA", // Lavande
+            "#98FB98", // Vert pastel
+            "#DDA0DD", // Violet pastel
+            "#F0E68C", // Jaune pastel
+            "#FFB6C1"  // Rose pastel
+        ]
     ],
 ];

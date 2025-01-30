@@ -34,5 +34,10 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
+    'stable_diffusion' => [
+        'url' => env('A1111_URL'),
+    ],
+    'deepbooru' => [
+        'url' => env('A1111_URL'),
+    ],
 ];

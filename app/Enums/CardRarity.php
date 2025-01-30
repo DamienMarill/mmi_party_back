@@ -36,4 +36,15 @@ enum CardRarity: string
             self::LEGENDARY => 0,
         };
     }
+
+    static public function getOrderedValues()
+    {
+        return [
+            self::COMMON->value,
+            self::UNCOMMON->value,
+            self::RARE->value,
+            self::EPIC->value,
+            self::LEGENDARY->value,
+        ];
+    }
 }

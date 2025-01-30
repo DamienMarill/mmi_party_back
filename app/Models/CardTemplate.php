@@ -89,4 +89,9 @@ class CardTemplate extends Model
     {
         return $this->belongsTo(User::class, 'base_user');
     }
+
+    public function cardVersions()
+    {
+        return $this->hasMany(CardVersion::class);
+    }
 }

@@ -21,4 +21,13 @@ enum CardTypes: string
             self::OBJECT => 'Objet',
         };
     }
+
+    static public function getOrderedValues()
+    {
+        return [
+            self::STUDENT->value,
+            self::STAFF->value,
+            self::OBJECT->value,
+        ];
+    }
 }

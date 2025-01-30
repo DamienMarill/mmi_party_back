@@ -10,6 +10,8 @@ enum MMIIBodyPart: string
     case NEZ = 'nez';
     case PARTICULARITES = 'particularites';
     case PILOSITE = 'pilosite';
+    case PULL = 'pull';
+    case SOURCILS = 'sourcils';
     case TETE = 'tete';
     case YEUX = 'yeux';
 
@@ -19,6 +21,9 @@ enum MMIIBodyPart: string
             self::BOUCHE,
             self::CHEVEUX,
             self::PILOSITE,
+            self::PULL,
+            self::SOURCILS,
+            self::PARTICULARITES,
             self::TETE,
             self::YEUX
         ]);
@@ -31,8 +36,10 @@ enum MMIIBodyPart: string
             self::CHEVEUX => 'multiply',
             self::MAQUILLAGE => 'none',
             self::NEZ => 'none',
-            self::PARTICULARITES => 'none',
+            self::PARTICULARITES => 'multiply',
             self::PILOSITE => 'multiply',
+            self::PULL => 'multiply',
+            self::SOURCILS => 'multiply',
             self::TETE => 'multiply',
             self::YEUX => 'hard-light',
         };

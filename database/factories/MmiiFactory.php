@@ -2,7 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Enums\StableDiffusionPreset;
+use App\Services\MMIIService;
+use App\Services\PlaceholderService;
+use App\Services\StableDiffusionService;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Mmii>
@@ -13,90 +18,74 @@ class MmiiFactory extends Factory
 
     protected MMIIService $mmiiService;
     protected array $availableParts;
+    protected PlaceholderService $placeholderService;
+    protected StableDiffusionService $stableDiffusion;
 
     public function __construct()
     {
         parent::__construct();
         $this->mmiiService = new MMIIService();
         $this->availableParts = $this->mmiiService->getAvailablePartsWithAssets();
+        $this->placeholderService = new PlaceholderService();
+        $this->stableDiffusion = new StableDiffusionService();
     }
 
-    private function getRandomFile(string $part): ?string
+    public function getRandomFile(string $part): ?string
     {
         $files = $this->availableParts[$part]['files'] ?? [];
         return !empty($files) ? $this->faker->randomElement($files) : null;
     }
 
-    private function getRandomColor(string $part): ?string
+    public function getRandomBackground(): ?string
+    {
+        $files = $this->mmiiService->getBackgroundsFiles();
+        return !empty($files) ? $this->faker->randomElement($files) : null;
+    }
+
+    public function getRandomColor(string $part): ?string
     {
         $colors = $this->availableParts[$part]['availableColors'] ?? [];
         return !empty($colors) ? $this->faker->randomElement($colors) : null;
     }
 
-    public function definition(): array
+    private function getRandomPreset(): StableDiffusionPreset
     {
-        $shape = [];
-
-        // Parties obligatoires
-        $shape['bouche'] = [
-            'img' => $this->getRandomFile('bouche')
-        ];
-
-        $shape['nez'] = [
-            'img' => $this->getRandomFile('nez')
-        ];
-
-        $shape['tete'] = [
-            'img' => $this->getRandomFile('tete'),
-            'color' => $this->getRandomColor('tete')
-        ];
-
-        $shape['yeux'] = [
-            'img' => $this->getRandomFile('yeux'),
-            'color' => $this->getRandomColor('yeux')
-        ];
-
-        // Parties optionnelles (avec 70% de chance d'apparaître)
-        $optionalParts = ['cheveux', 'maquillage', 'particularites', 'pilosite'];
-
-        foreach ($optionalParts as $part) {
-            if ($this->faker->boolean(70)) {
-                $shape[$part] = [
-                    'img' => $this->getRandomFile($part)
-                ];
-
-                // Ajouter la couleur si nécessaire
-                if ($this->availableParts[$part]['requiresColor']) {
-                    $shape[$part]['color'] = $this->getRandomColor($part);
-                }
-            }
-        }
-
-        return [
-            'shape' => $shape
-        ];
+        $cases = StableDiffusionPreset::cases();
+        return $cases[array_rand($cases)];
     }
 
-    // États spéciaux
-    public function withAllParts()
+
+    public function definition(): array
     {
-        return $this->state(function (array $attributes) {
-            $shape = $attributes['shape'];
+        $shape = $this->minimal();
+        try {
+            // Récupérer une image placeholder
+            $baseImage = $this->placeholderService->getRandomImage();
 
-            foreach ($this->availableParts as $part => $data) {
-                if (!isset($shape[$part])) {
-                    $shape[$part] = [
-                        'img' => $this->getRandomFile($part)
-                    ];
+            // Générer l'image avec Stable Diffusion
+            $result = $this->stableDiffusion->img2img(
+                $baseImage,
+                $this->getRandomPreset()
+            );
 
-                    if ($data['requiresColor']) {
-                        $shape[$part]['color'] = $this->getRandomColor($part);
-                    }
-                }
-            }
+            // L'API renvoie les images en base64
+            $generatedImage = $result['images'][0] ?? null;
 
-            return ['shape' => $shape];
-        });
+            return [
+                'shapes' => $shape,
+                'background' => $generatedImage
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to generate image for MMII', [
+                'error' => $e->getMessage()
+            ]);
+
+            // Retourner juste le shape si la génération échoue
+            return [
+                'shapes' => $shape,
+                'background' => null
+            ];
+        }
     }
 
     public function minimal()
@@ -105,7 +94,8 @@ class MmiiFactory extends Factory
             return [
                 'shape' => [
                     'bouche' => [
-                        'img' => $this->getRandomFile('bouche')
+                        'img' => $this->getRandomFile('bouche'),
+                        'color' => $this->getRandomColor('bouche')
                     ],
                     'nez' => [
                         'img' => $this->getRandomFile('nez')
@@ -117,9 +107,56 @@ class MmiiFactory extends Factory
                     'yeux' => [
                         'img' => $this->getRandomFile('yeux'),
                         'color' => $this->getRandomColor('yeux')
+                    ],
+                    'cheveux' => [
+                        'img' => $this->getRandomFile('cheveux'),
+                        'color' => $this->getRandomColor('cheveux')
+                    ],
+                    'maquillage' => [
+                        'img' => $this->getRandomFile('maquillage')
+                    ],
+                    'particularites' => [
+                        'img' => $this->getRandomFile('particularites')
+                    ],
+                    'pilosite' => [
+                        'img' => $this->getRandomFile('pilosite'),
+                        'color' => $this->getRandomColor('pilosite')
                     ]
                 ]
             ];
+        });
+    }
+
+    // Méthode pour forcer l'utilisation d'un preset spécifique
+    public function withPreset(StableDiffusionPreset $preset)
+    {
+        return $this->state(function (array $attributes) use ($preset) {
+            try {
+                $baseImage = $this->placeholderService->getRandomImage();
+                $result = $this->stableDiffusion->img2img(
+                    $baseImage,
+                    $preset
+                );
+
+                return [
+                    'background' => $result['images'][0] ?? null
+                ];
+            } catch (\Exception $e) {
+                Log::error('Failed to generate image with preset', [
+                    'preset' => $preset->value,
+                    'error' => $e->getMessage()
+                ]);
+
+                return ['image' => null];
+            }
+        });
+    }
+
+    // Méthode pour skip la génération d'image
+    public function withoutImage()
+    {
+        return $this->state(function (array $attributes) {
+            return ['background' => null];
         });
     }
 }

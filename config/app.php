@@ -123,4 +123,96 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'loot_rate' => [
+        [
+            [
+                'type' => 'student',
+                'level' => 1,
+                'drop' => 1,
+            ]
+        ],
+        [
+            [
+                'type' => 'student',
+                'level' => 1,
+                'drop' => 1,
+            ]
+        ],
+        [
+            [
+                'type' => 'student',
+                'level' => 1,
+                'drop' => 1,
+            ]
+        ],
+        [
+            [
+                'type' => 'student',
+                'level' => 2,
+                'drop' => 0.7,
+            ],
+            [
+                'type' => 'student',
+                'level' => 3,
+                'drop' => 0.25,
+            ],
+            [
+                'type' => 'staff',
+                'level' => null,
+                'drop' => 0.05,
+            ]
+        ],
+        [
+            [
+                'type' => 'student',
+                'level' => 2,
+                'drop' => 0.7,
+            ],
+            [
+                'type' => 'student',
+                'level' => 3,
+                'drop' => 0.25,
+            ],
+            [
+                'type' => 'staff',
+                'level' => null,
+                'drop' => 0.05,
+            ]
+        ],
+        [
+            [
+                'type' => 'student',
+                'level' => 2,
+                'drop' => 0.6,
+            ],
+            [
+                'type' => 'student',
+                'level' => 3,
+                'drop' => 0.35,
+            ],
+            [
+                'type' => 'staff',
+                'level' => null,
+                'drop' => 0.05,
+            ]
+        ],
+        [
+            [
+                'type' => 'staff',
+                'level' => null,
+                'drop' => 0.2,
+            ],
+            [
+                'type' => 'object',
+                'level' => null,
+                'drop' => 0.8,
+            ]
+        ]
+    ],
+    'lootbox_times' => [
+        '12:35',
+        '18:35',
+    ],
+    'lootbox_avaibility' => 24,
+
 ];
