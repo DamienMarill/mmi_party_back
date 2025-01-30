@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\MMIIPartsController;
 use App\Http\Controllers\UserController;
+use App\Http\Middleware\EnsureEmailIsVerifiedApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -17,10 +18,12 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
 });
 
-Route::group(['middleware' => 'auth:api'], function () {
+Route::get('/', [UserController::class, 'getMe'])->middleware('auth:api');
+
+Route::group(['middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
     Route::group(['prefix' => '/me'], function (){
-        Route::get('/', [UserController::class, 'getMe']);
         Route::get('/loot', [UserController::class, 'getLoot']);
+        Route::get('/loot/availability', [UserController::class, 'checkAvailability']);
 //    Route::put('/', [AuthController::class, 'update']);
 //    Route::put('/password', [AuthController::class, 'updatePassword']);
 //    Route::post('/logout', [AuthController::class, 'logout']);

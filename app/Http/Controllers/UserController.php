@@ -38,6 +38,7 @@ class UserController extends Controller
         // ajouter les cartes à la collection de l'utilisateur
         $lootbox = new Lootbox();
         $lootbox->type = LootboxTypes::QUOTIDIAN;
+        $lootbox->user_id = auth()->user()->id;
         $lootbox->save();
 
         $user = auth()->user();
