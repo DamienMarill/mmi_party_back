@@ -127,7 +127,7 @@ class LootboxService
             }
 
             return [
-                'available' => $isTimeValid,
+                'available' => true,
                 'nextTime' => $nextTime,
                 'reason' => $isTimeValid ? null : 'wrong_time'
             ];

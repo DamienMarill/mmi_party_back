@@ -215,4 +215,6 @@ return [
     ],
     'lootbox_avaibility' => 24,
 
+    'front_url' => env('APP_FRONT_URL', 'http://localhost:3000'),
+
 ];

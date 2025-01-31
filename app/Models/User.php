@@ -89,4 +89,9 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     {
         return $this->belongsTo(MMII::class);
     }
+
+    public function routeNotificationForMail(): string
+    {
+        return $this->um_email;
+    }
 }

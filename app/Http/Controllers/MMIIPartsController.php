@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Mmii;
 use Illuminate\Http\Request;
 use App\Services\MMIIService;
 
@@ -17,6 +18,12 @@ class MMIIPartsController extends Controller
         return $mmiiService->getAvailablePartsWithAssets();
     }
 
+    public function update()
+    {
+        $mmii = auth()->user()->mmii()->first();
+        Mmii::updateOrCreate(['id'=>$mmii->id], request()->all());
+    }
+
     public function indexBackgrounds()
     {
         $mmiiService = new MMIIService();
@@ -30,5 +37,11 @@ class MMIIPartsController extends Controller
     public function show(string $id)
     {
         //
+    }
+
+    public function updateBackgrounds()
+    {
+        $mmii = auth()->user()->mmii()->get();
+        Mmii::createOrUpdate($mmii, request()->all());
     }
 }

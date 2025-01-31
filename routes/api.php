@@ -16,9 +16,25 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('refresh', [AuthController::class, 'refresh']);
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
+    Route::put('/register/{registrationId}', [AuthController::class, 'finalizeRegistration']);
+});
+Route::post('/me/verify_code', [AuthController::class, 'verifyCode'])->middleware('throttle:6,1');
+
+Route::group(['middleware' => 'auth:api', 'prefix' => '/me'], function (){
+    Route::get('/', [UserController::class, 'getMe'])->middleware('auth:api');
 });
 
-Route::get('/', [UserController::class, 'getMe'])->middleware('auth:api');
+Route::group(['prefix' => '/mmii'], function (){
+    Route::group(['prefix' => '/parts'], function () {
+        Route::get('/', [MMIIPartsController::class, 'index']);
+        Route::put('/', [MMIIPartsController::class, 'update']);
+        Route::group(['prefix' => '/backgrounds'], function () {
+            Route::get('/', [MMIIPartsController::class, 'indexBackgrounds']);
+            Route::put('/', [MMIIPartsController::class, 'updateBackgrounds']);
+        });
+
+    });
+});
 
 Route::group(['middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
     Route::group(['prefix' => '/me'], function (){
@@ -27,13 +43,6 @@ Route::group(['middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], fu
 //    Route::put('/', [AuthController::class, 'update']);
 //    Route::put('/password', [AuthController::class, 'updatePassword']);
 //    Route::post('/logout', [AuthController::class, 'logout']);
-    });
-
-    Route::group(['prefix' => '/mmii'], function (){
-        Route::group(['prefix' => '/parts'], function () {
-            Route::get('/', [MMIIPartsController::class, 'index']);
-            Route::get('/backgrounds', [MMIIPartsController::class, 'indexBackgrounds']);
-        });
     });
 
     Route::group(['prefix' => '/collection'], function (){
