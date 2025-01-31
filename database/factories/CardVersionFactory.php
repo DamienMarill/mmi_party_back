@@ -24,7 +24,7 @@ class CardVersionFactory extends Factory
         return [
             'card_template_id' => CardTemplate::factory(),
             'rarity' => $this->faker->randomElement(CardRarity::cases()),
-            'image' => $this->faker->waifuPlaceholder(512, 512), // Placeholder pour le dev
+            'image' => null, // Placeholder pour le dev
         ];
     }
 

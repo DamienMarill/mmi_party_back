@@ -31,9 +31,11 @@ class CardTemplateFactory extends Factory
         };
     }
 
-    private function studentCard(): array
+    private function studentCard($level = null): array
     {
-        $level = $this->faker->numberBetween(1, 3);
+        if (!$level) {
+            $level = $this->faker->numberBetween(1, 3);
+        }
 
         return [
             'name' => $this->faker->name(),
