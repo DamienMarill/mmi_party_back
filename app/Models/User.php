@@ -76,10 +76,6 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         return [];
     }
 
-    public function sendEmailVerificationNotification(){
-        //TODO
-    }
-
     public function collection(){
         return $this->hasMany(CardInstance::class)
                     ->with(['cardVersion', 'cardVersion.cardTemplate', 'cardVersion.cardTemplate.mmii']);
@@ -87,7 +83,7 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
 
     public function mmii()
     {
-        return $this->belongsTo(MMII::class);
+        return $this->belongsTo(Mmii::class);
     }
 
     public function routeNotificationForMail(): string

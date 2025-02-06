@@ -21,7 +21,18 @@ class MMIIPartsController extends Controller
     public function update()
     {
         $mmii = auth()->user()->mmii()->first();
-        Mmii::updateOrCreate(['id'=>$mmii->id], request()->all());
+
+        if ($mmii){
+            Mmii::updateOrCreate(['id'=>$mmii->id], request()->all());
+        }else{
+            $mmii = new Mmii();
+            $mmii->fill(request()->all());
+            $mmii->save();
+
+            $user = auth()->user();
+            $user->mmii_id = $mmii->id;
+            $user->save();
+        }
     }
 
     public function indexBackgrounds()
