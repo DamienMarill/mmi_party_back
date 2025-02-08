@@ -100,54 +100,119 @@ class LootboxService
         $now = Carbon::now();
         $periodStart = $now->copy()->subHours($this->availabilityPeriod);
 
-        // Compte les boosters quotidiens ouverts pendant la période
-        $openedCount = Lootbox::where('user_id', $userId)
+        // On récupère toutes les lootboxes des dernières 24h
+        $recentLootboxes = Lootbox::where('user_id', $userId)
             ->where('type', LootboxTypes::QUOTIDIAN->value)
             ->whereBetween('created_at', [$periodStart, $now])
-            ->count();
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        Log::info('Opened count: ' . $openedCount.' '.$periodStart.' '.$now);
+        // Calcul des créneaux disponibles sur la période de 24h
+        $availableSlots = [];
+        $currentTime = $now->format('H:i');
 
-        // Si le joueur a ouvert moins de boosters que d'horaires disponibles
-        if ($openedCount < count($this->availableTimes)) {
-            // Vérifie si on est dans une plage horaire valide
-            $currentTime = $now->format('H:i');
-            $isTimeValid = false;
-            $nextTime = null;
-
-            foreach ($this->availableTimes as $time) {
-                if ($this->isWithinTimeRange($currentTime, $time)) {
-                    $isTimeValid = true;
-                    break;
-                }
+        // Créneaux d'hier (après periodStart)
+        foreach ($this->availableTimes as $time) {
+            $slotTime = $periodStart->copy()->setTimeFromTimeString($time);
+            if ($slotTime > $periodStart && $slotTime <= $now) {
+                $availableSlots[] = $slotTime;
             }
-
-            if (!$isTimeValid) {
-                $nextTime = $this->getNextAvailableTime($currentTime);
-            }
-
-            return [
-                'available' => true,
-                'nextTime' => $nextTime,
-                'reason' => $isTimeValid ? null : 'wrong_time'
-            ];
         }
 
-        // Le joueur a déjà ouvert tous ses boosters
+        // Créneaux d'aujourd'hui (jusqu'à now)
+        foreach ($this->availableTimes as $time) {
+            $slotTime = $now->copy()->setTimeFromTimeString($time);
+            if ($slotTime <= $now) {
+                $availableSlots[] = $slotTime;
+            }
+        }
+
+        // Nombre de lootboxes qu'on aurait dû pouvoir ouvrir
+        $totalAvailable = count($availableSlots);
+
+        // Nombre de lootboxes déjà ouvertes
+        $openedCount = $recentLootboxes->count();
+
+        // Calcul des lootboxes encore disponibles
+        $remainingCount = max(0, $totalAvailable - $openedCount);
+
         return [
-            'available' => false,
-            'nextTime' => $this->getNextRefreshTime($periodStart),
-            'reason' => 'max_reached'
+            'available' => $remainingCount > 0,
+            'count' => $remainingCount,
+            'nextTime' => $this->getNextAvailableTime($currentTime),
+            'debug' => [
+                'totalAvailable' => $totalAvailable,
+                'openedCount' => $openedCount,
+                'periodStart' => $periodStart->format('Y-m-d H:i:s'),
+                'now' => $now->format('Y-m-d H:i:s'),
+                'availableSlots' => $availableSlots,
+                'recentLootboxes' => $recentLootboxes->map(fn($box) => $box->created_at->format('Y-m-d H:i:s'))
+            ]
         ];
     }
 
-    private function isWithinTimeRange(string $current, string $targetTime): bool
+    private function handleNoRecentOpening(Carbon $now): array
     {
-        $currentMinutes = $this->timeToMinutes($current);
-        $targetMinutes = $this->timeToMinutes($targetTime);
+        $currentTime = $now->format('H:i');
+        $availableSlots = [];
 
-        // Donne une fenêtre de 30 minutes pour ouvrir le booster
-        return abs($currentMinutes - $targetMinutes) <= 15;
+        // On vérifie les créneaux de la veille
+        foreach ($this->availableTimes as $time) {
+            $availableSlots[] = $time;
+        }
+
+        // On ajoute les créneaux d'aujourd'hui déjà passés
+        foreach ($this->availableTimes as $time) {
+            if ($this->timeToMinutes($time) <= $this->timeToMinutes($currentTime)) {
+                $availableSlots[] = $time;
+            }
+        }
+
+        return [
+            'available' => true,
+            'count' => min(count($availableSlots), 2), // Maximum 2 lootboxes stockables
+            'nextTime' => $this->getNextAvailableTime($currentTime),
+            'reason' => null
+        ];
+    }
+
+    private function calculateAvailableLootboxes(Carbon $lastOpening, Carbon $now): array
+    {
+        $currentTime = $now->format('H:i');
+        $availableSlots = [];
+
+        // On regarde chaque créneau depuis la dernière ouverture
+        foreach ($this->availableTimes as $time) {
+            $slotTime = $this->createSlotTime($lastOpening, $time);
+
+            // Si le créneau est entre la dernière ouverture et maintenant
+            if ($slotTime > $lastOpening && $slotTime <= $now) {
+                $availableSlots[] = $time;
+            }
+        }
+
+        // On vérifie aussi les créneaux du jour d'avant si on est encore dans la fenêtre de 24h
+        if ($lastOpening->diffInHours($now) > 12) {
+            foreach ($this->availableTimes as $time) {
+                $slotTime = $this->createSlotTime($lastOpening->copy()->subDay(), $time);
+                if ($slotTime > $lastOpening->copy()->subHours(24) && $slotTime <= $now) {
+                    $availableSlots[] = $time;
+                }
+            }
+        }
+
+        return [
+            'available' => !empty($availableSlots),
+            'count' => min(count($availableSlots), 2),
+            'nextTime' => $this->getNextAvailableTime($currentTime),
+            'reason' => empty($availableSlots) ? 'no_available_slots' : null
+        ];
+    }
+
+    private function createSlotTime(Carbon $baseTime, string $slotTime): Carbon
+    {
+        [$hours, $minutes] = explode(':', $slotTime);
+        return $baseTime->copy()->setTime((int)$hours, (int)$minutes);
     }
 
     private function timeToMinutes(string $time): int
@@ -164,13 +229,12 @@ class LootboxService
 
         foreach ($this->availableTimes as $time) {
             $targetMinutes = $this->timeToMinutes($time);
+            $diff = $targetMinutes - $currentMinutes;
 
-            // Si l'heure est déjà passée, on ajoute 24h
-            if ($targetMinutes <= $currentMinutes) {
-                $targetMinutes += 24 * 60;
+            if ($diff <= 0) {
+                $diff += 24 * 60;
             }
 
-            $diff = $targetMinutes - $currentMinutes;
             if ($diff < $minDiff) {
                 $minDiff = $diff;
                 $nextTime = $time;
@@ -178,11 +242,5 @@ class LootboxService
         }
 
         return $nextTime;
-    }
-
-    private function getNextRefreshTime(Carbon $periodStart): string
-    {
-        // Retourne l'heure à laquelle le prochain booster sera disponible
-        return $periodStart->addHours($this->availabilityPeriod)->format('H:i');
     }
 }

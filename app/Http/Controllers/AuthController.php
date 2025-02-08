@@ -8,6 +8,7 @@ use App\Models\Mmii;
 use App\Models\RefreshToken;
 use App\Models\User;
 use App\Notifications\VerificationMail;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -139,20 +140,30 @@ class AuthController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|confirmed|min:8',
+            'password' => 'required|min:8|confirmed',
+        ], [
+            'password.required' => 'Le mot de passe est requis',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',
+            'password.confirmed' => 'Les mots de passe ne correspondent pas',
         ]);
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->password = Hash::make($password);
-                $user->save();
+            function ($user) use ($request) {
+                $user->forceFill([
+                    'password' => Hash::make($request->password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
             }
         );
 
-        return $status === Password::PASSWORD_RESET
-            ? response()->json(['message' => 'Mot de passe réinitialisé!'])
-            : response()->json(['error' => 'Une erreur est survenue'], 400);
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'Mot de passe réinitialisé avec succès']);
+        }
+
+        return response()->json(['error' => 'Token invalide'], 400);
     }
 
     protected function respondWithToken($token): \Illuminate\Http\JsonResponse

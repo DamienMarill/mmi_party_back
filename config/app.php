@@ -141,30 +141,6 @@ return [
         [
             [
                 'type' => 'student',
-                'level' => 1,
-                'drop' => 1,
-            ]
-        ],
-        [
-            [
-                'type' => 'student',
-                'level' => 2,
-                'drop' => 0.7,
-            ],
-            [
-                'type' => 'student',
-                'level' => 3,
-                'drop' => 0.25,
-            ],
-            [
-                'type' => 'staff',
-                'level' => null,
-                'drop' => 0.05,
-            ]
-        ],
-        [
-            [
-                'type' => 'student',
                 'level' => 2,
                 'drop' => 0.7,
             ],

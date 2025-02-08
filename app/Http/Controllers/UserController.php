@@ -61,7 +61,8 @@ class UserController extends Controller
         return response()->json([
             'available' => $result['available'],
             'nextAvailableTime' => $result['nextTime'],
-            'reason' => $result['reason']
+            'debug' => $result['debug'],
+//            'reason' => $result['reason']
         ]);
     }
 }
