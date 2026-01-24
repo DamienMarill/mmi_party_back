@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__marill__Serena__list_dir",
+      "Bash(php artisan test:*)"
+    ]
+  }
+}
