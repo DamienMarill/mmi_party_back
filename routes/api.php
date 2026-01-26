@@ -20,11 +20,11 @@ Route::group(['prefix' => 'auth'], function () {
 });
 Route::post('/me/verify_code', [AuthController::class, 'verifyCode'])->middleware('throttle:6,1');
 
-Route::group(['middleware' => 'auth:api', 'prefix' => '/me'], function (){
+Route::group(['middleware' => 'auth:api', 'prefix' => '/me'], function () {
     Route::get('/', [UserController::class, 'getMe'])->middleware('auth:api');
 });
 
-Route::group(['prefix' => '/mmii'], function (){
+Route::group(['prefix' => '/mmii'], function () {
     Route::group(['prefix' => '/parts'], function () {
         Route::get('/', [MMIIPartsController::class, 'index']);
         Route::put('/', [MMIIPartsController::class, 'update']);
@@ -37,21 +37,28 @@ Route::group(['prefix' => '/mmii'], function (){
 });
 
 Route::group(['middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
-    Route::group(['prefix' => '/me'], function (){
+    Route::group(['prefix' => '/me'], function () {
         Route::get('/loot', [UserController::class, 'getLoot']);
         Route::get('/loot/availability', [UserController::class, 'checkAvailability']);
-//    Route::put('/', [AuthController::class, 'update']);
+        //    Route::put('/', [AuthController::class, 'update']);
 //    Route::put('/password', [AuthController::class, 'updatePassword']);
 //    Route::post('/logout', [AuthController::class, 'logout']);
     });
 
-    Route::group(['prefix' => '/collection'], function (){
+    Route::group(['prefix' => '/collection'], function () {
         Route::get('/', [CollectionController::class, 'index']);
         Route::get('/{cardVersion}', [CollectionController::class, 'show']);
     });
 });
 
-Route::get('assets/{path}', function($path) {
+Route::group(['prefix' => 'push', 'middleware' => 'auth:api'], function () {
+    Route::get('/vapid-key', [\App\Http\Controllers\PushSubscriptionController::class, 'vapidPublicKey']);
+    Route::get('/status', [\App\Http\Controllers\PushSubscriptionController::class, 'status']);
+    Route::post('/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'subscribe']);
+    Route::post('/unsubscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'unsubscribe']);
+});
+
+Route::get('assets/{path}', function ($path) {
     // Vérifie si le fichier existe
     if (!Storage::disk('public')->exists($path)) {
         return response()->json(['error' => 'File not found'], 404);
