@@ -58,6 +58,18 @@ Route::group(['prefix' => 'push', 'middleware' => 'auth:api'], function () {
     Route::post('/unsubscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'unsubscribe']);
 });
 
+// Hub WebSocket - Routes pour le système d'invitation et rooms
+Route::group(['prefix' => 'hub', 'middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
+    Route::get('/{type}/players', [\App\Http\Controllers\HubController::class, 'onlinePlayers']);
+    Route::post('/{type}/invite/{userId}', [\App\Http\Controllers\HubController::class, 'sendInvitation']);
+    Route::get('/{type}/invitations', [\App\Http\Controllers\HubController::class, 'myInvitations']);
+    Route::get('/{type}/sent-invitation', [\App\Http\Controllers\HubController::class, 'mySentInvitation']);
+    Route::post('/{type}/invitations/{id}/accept', [\App\Http\Controllers\HubController::class, 'acceptInvitation']);
+    Route::post('/{type}/invitations/{id}/decline', [\App\Http\Controllers\HubController::class, 'declineInvitation']);
+    Route::post('/{type}/invitations/{id}/cancel', [\App\Http\Controllers\HubController::class, 'cancelInvitation']);
+    Route::get('/rooms/{roomId}', [\App\Http\Controllers\HubController::class, 'getRoom']);
+});
+
 Route::get('assets/{path}', function ($path) {
     // Vérifie si le fichier existe
     if (!Storage::disk('public')->exists($path)) {

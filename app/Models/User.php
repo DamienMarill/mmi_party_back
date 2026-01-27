@@ -98,4 +98,25 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     {
         return $this->um_email;
     }
+
+    // Hub relations
+    public function sentInvitations(): HasMany
+    {
+        return $this->hasMany(HubInvitation::class, 'sender_id');
+    }
+
+    public function receivedInvitations(): HasMany
+    {
+        return $this->hasMany(HubInvitation::class, 'receiver_id');
+    }
+
+    public function roomsAsPlayerOne(): HasMany
+    {
+        return $this->hasMany(HubRoom::class, 'player_one_id');
+    }
+
+    public function roomsAsPlayerTwo(): HasMany
+    {
+        return $this->hasMany(HubRoom::class, 'player_two_id');
+    }
 }
