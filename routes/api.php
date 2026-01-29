@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\MMIIPartsController;
+use App\Http\Controllers\MoodleAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureEmailIsVerifiedApi;
 use Illuminate\Http\Request;
@@ -17,11 +18,17 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
     Route::put('/register/{registrationId}', [AuthController::class, 'finalizeRegistration']);
+
+    // Moodle OAuth routes
+    Route::get('moodle/redirect', [MoodleAuthController::class, 'redirect']);
+    Route::get('moodle/callback', [MoodleAuthController::class, 'callback']);
 });
 Route::post('/me/verify_code', [AuthController::class, 'verifyCode'])->middleware('throttle:6,1');
 
 Route::group(['middleware' => 'auth:api', 'prefix' => '/me'], function () {
     Route::get('/', [UserController::class, 'getMe'])->middleware('auth:api');
+    // Finalize profile for Moodle users (no email verification required)
+    Route::post('/finalize-profile', [UserController::class, 'finalizeProfile']);
 });
 
 Route::group(['prefix' => '/mmii'], function () {
