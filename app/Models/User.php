@@ -7,6 +7,8 @@ use App\Enums\UserGroups;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
@@ -28,6 +30,8 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         'password',
         'github_id',
         'groupe',
+        'moodle_id',
+        'moodle_username',
     ];
 
     /**
@@ -76,9 +80,10 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         return [];
     }
 
-    public function collection(){
+    public function collection()
+    {
         return $this->hasMany(CardInstance::class)
-                    ->with(['cardVersion', 'cardVersion.cardTemplate', 'cardVersion.cardTemplate.mmii']);
+            ->with(['cardVersion', 'cardVersion.cardTemplate', 'cardVersion.cardTemplate.mmii']);
     }
 
     public function mmii()
@@ -86,8 +91,34 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         return $this->belongsTo(Mmii::class);
     }
 
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
     public function routeNotificationForMail(): string
     {
         return $this->um_email;
+    }
+
+    // Hub relations
+    public function sentInvitations(): HasMany
+    {
+        return $this->hasMany(HubInvitation::class, 'sender_id');
+    }
+
+    public function receivedInvitations(): HasMany
+    {
+        return $this->hasMany(HubInvitation::class, 'receiver_id');
+    }
+
+    public function roomsAsPlayerOne(): HasMany
+    {
+        return $this->hasMany(HubRoom::class, 'player_one_id');
+    }
+
+    public function roomsAsPlayerTwo(): HasMany
+    {
+        return $this->hasMany(HubRoom::class, 'player_two_id');
     }
 }

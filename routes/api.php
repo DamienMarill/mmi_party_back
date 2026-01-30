@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\MMIIPartsController;
+use App\Http\Controllers\MoodleAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\EnsureEmailIsVerifiedApi;
 use Illuminate\Http\Request;
@@ -17,14 +18,20 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
     Route::put('/register/{registrationId}', [AuthController::class, 'finalizeRegistration']);
+
+    // Moodle OAuth routes
+    Route::get('moodle/redirect', [MoodleAuthController::class, 'redirect']);
+    Route::get('moodle/callback', [MoodleAuthController::class, 'callback']);
 });
 Route::post('/me/verify_code', [AuthController::class, 'verifyCode'])->middleware('throttle:6,1');
 
-Route::group(['middleware' => 'auth:api', 'prefix' => '/me'], function (){
+Route::group(['middleware' => 'auth:api', 'prefix' => '/me'], function () {
     Route::get('/', [UserController::class, 'getMe'])->middleware('auth:api');
+    // Finalize profile for Moodle users (no email verification required)
+    Route::post('/finalize-profile', [UserController::class, 'finalizeProfile']);
 });
 
-Route::group(['prefix' => '/mmii'], function (){
+Route::group(['prefix' => '/mmii'], function () {
     Route::group(['prefix' => '/parts'], function () {
         Route::get('/', [MMIIPartsController::class, 'index']);
         Route::put('/', [MMIIPartsController::class, 'update']);
@@ -37,21 +44,40 @@ Route::group(['prefix' => '/mmii'], function (){
 });
 
 Route::group(['middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
-    Route::group(['prefix' => '/me'], function (){
+    Route::group(['prefix' => '/me'], function () {
         Route::get('/loot', [UserController::class, 'getLoot']);
         Route::get('/loot/availability', [UserController::class, 'checkAvailability']);
-//    Route::put('/', [AuthController::class, 'update']);
+        //    Route::put('/', [AuthController::class, 'update']);
 //    Route::put('/password', [AuthController::class, 'updatePassword']);
 //    Route::post('/logout', [AuthController::class, 'logout']);
     });
 
-    Route::group(['prefix' => '/collection'], function (){
+    Route::group(['prefix' => '/collection'], function () {
         Route::get('/', [CollectionController::class, 'index']);
         Route::get('/{cardVersion}', [CollectionController::class, 'show']);
     });
 });
 
-Route::get('assets/{path}', function($path) {
+Route::group(['prefix' => 'push', 'middleware' => 'auth:api'], function () {
+    Route::get('/vapid-key', [\App\Http\Controllers\PushSubscriptionController::class, 'vapidPublicKey']);
+    Route::get('/status', [\App\Http\Controllers\PushSubscriptionController::class, 'status']);
+    Route::post('/subscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'subscribe']);
+    Route::post('/unsubscribe', [\App\Http\Controllers\PushSubscriptionController::class, 'unsubscribe']);
+});
+
+// Hub WebSocket - Routes pour le système d'invitation et rooms
+Route::group(['prefix' => 'hub', 'middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
+    Route::get('/{type}/players', [\App\Http\Controllers\HubController::class, 'onlinePlayers']);
+    Route::post('/{type}/invite/{userId}', [\App\Http\Controllers\HubController::class, 'sendInvitation']);
+    Route::get('/{type}/invitations', [\App\Http\Controllers\HubController::class, 'myInvitations']);
+    Route::get('/{type}/sent-invitation', [\App\Http\Controllers\HubController::class, 'mySentInvitation']);
+    Route::post('/{type}/invitations/{id}/accept', [\App\Http\Controllers\HubController::class, 'acceptInvitation']);
+    Route::post('/{type}/invitations/{id}/decline', [\App\Http\Controllers\HubController::class, 'declineInvitation']);
+    Route::post('/{type}/invitations/{id}/cancel', [\App\Http\Controllers\HubController::class, 'cancelInvitation']);
+    Route::get('/rooms/{roomId}', [\App\Http\Controllers\HubController::class, 'getRoom']);
+});
+
+Route::get('assets/{path}', function ($path) {
     // Vérifie si le fichier existe
     if (!Storage::disk('public')->exists($path)) {
         return response()->json(['error' => 'File not found'], 404);
