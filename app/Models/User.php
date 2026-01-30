@@ -32,6 +32,7 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         'groupe',
         'moodle_id',
         'moodle_username',
+        'email_verified_at',
     ];
 
     /**
