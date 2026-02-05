@@ -27,8 +27,9 @@ class LootboxServiceTest extends TestCase
 
     /**
      * Helper pour créer une lootbox avec une date spécifique
+     * Calcule automatiquement le slot_used_at en fonction des horaires de slots
      */
-    private function createLootboxAt(Carbon $date): Lootbox
+    private function createLootboxAt(Carbon $date, ?Carbon $slotUsedAt = null): Lootbox
     {
         $lootbox = new Lootbox();
         $lootbox->user_id = $this->user->id;
@@ -36,6 +37,35 @@ class LootboxServiceTest extends TestCase
         $lootbox->timestamps = false; // Désactiver les timestamps automatiques
         $lootbox->created_at = $date;
         $lootbox->updated_at = $date;
+
+        // Si slot_used_at n'est pas spécifié, calculer le slot le plus proche avant created_at
+        if ($slotUsedAt === null) {
+            $slotTimes = config('app.lootbox_times', ['12:35', '18:35']);
+            $nearestSlot = null;
+            $minDiff = PHP_INT_MAX;
+
+            foreach ($slotTimes as $slotTime) {
+                $slotToday = $date->copy()->setTimeFromTimeString($slotTime);
+                if ($slotToday <= $date) {
+                    $diff = $date->diffInMinutes($slotToday);
+                    if ($diff < $minDiff) {
+                        $minDiff = $diff;
+                        $nearestSlot = $slotToday;
+                    }
+                }
+            }
+
+            // Si aucun slot aujourd'hui n'est avant created_at, prendre le dernier slot d'hier
+            if ($nearestSlot === null) {
+                $lastSlotTime = end($slotTimes);
+                $nearestSlot = $date->copy()->subDay()->setTimeFromTimeString($lastSlotTime);
+            }
+
+            $lootbox->slot_used_at = $nearestSlot;
+        } else {
+            $lootbox->slot_used_at = $slotUsedAt;
+        }
+
         $lootbox->save();
 
         return $lootbox;

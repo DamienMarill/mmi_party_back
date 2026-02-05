@@ -30,20 +30,25 @@ class UserController extends Controller
 
     public function getLoot()
     {
+        $availability = $this->availabilityService->checkAvailability(auth()->user()->id);
 
-        if ($this->availabilityService->checkAvailability(auth()->user()->id)['available'] === false) {
+        if ($availability['available'] === false) {
             return response()->json([
                 'error' => 'You can\'t open a lootbox right now'
             ], 400);
         }
 
-        // tirer la lootbox
+        // Récupérer le slot à utiliser
+        $slotToUse = $availability['nextSlot'];
+
+        // Tirer la lootbox
         $loots = $this->availabilityService->generateLootbox();
 
-        // ajouter les cartes à la collection de l'utilisateur
+        // Créer l'enregistrement de la lootbox avec le slot utilisé
         $lootbox = new Lootbox();
         $lootbox->type = LootboxTypes::QUOTIDIAN;
         $lootbox->user_id = auth()->user()->id;
+        $lootbox->slot_used_at = $slotToUse['timestamp']; // Enregistrer le timestamp exact du slot
         $lootbox->save();
 
         $user = auth()->user();
@@ -65,9 +70,11 @@ class UserController extends Controller
 
         return response()->json([
             'available' => $result['available'],
+            'count' => $result['count'],
             'nextAvailableTime' => $result['nextTime'],
+            'nextAvailableDateTime' => $result['nextAvailableDateTime'],
+            'slotsInfo' => $result['slotsInfo'] ?? [],
             'debug' => $result['debug'],
-            //            'reason' => $result['reason']
         ]);
     }
 

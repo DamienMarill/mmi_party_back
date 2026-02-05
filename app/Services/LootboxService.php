@@ -95,46 +95,66 @@ class LootboxService
     /**
      * Vérifie la disponibilité des boosters pour un utilisateur.
      * 
-     * Logique : 
-     * - Chaque slot (ex: 12:35, 18:35) génère un booster
-     * - Un booster expire après 24h (remplacé par le prochain cycle du même slot)
+     * Nouvelle logique avec timestamp-based slot tracking:
+     * - Chaque slot (ex: 12:35, 18:35) génère un booster avec un timestamp précis
+     * - Un slot est utilisé si une lootbox existe avec slot_used_at = timestamp du slot
+     * - Un slot expire après 24h (remplacé par le prochain cycle du même slot)
      * - Maximum 2 boosters accumulables (un par slot)
-     * 
-     * Calcul : slots disponibles dans les dernières 24h - lootboxes ouvertes dans la même période
      */
     public function checkAvailability(string $userId): array
     {
         $now = Carbon::now();
 
-        // Collecter tous les slots disponibles (passés dans les dernières 24h)
+        // Collecter tous les slots disponibles avec leurs timestamps
         $availableSlots = $this->getAvailableSlotsInPeriod($now);
 
-        // Compter les lootboxes ouvertes depuis le plus ancien slot disponible
-        $oldestSlot = collect($availableSlots)->min();
+        // Pour chaque slot, vérifier s'il a déjà été utilisé
+        $unusedSlots = [];
+        $allSlotsInfo = [];
 
-        $openedCount = 0;
-        if ($oldestSlot) {
-            $openedCount = Lootbox::where('user_id', $userId)
-                ->where('type', LootboxTypes::QUOTIDIAN->value)
-                ->where('created_at', '>=', $oldestSlot)
-                ->count();
+        foreach ($availableSlots as $slot) {
+            // Chercher une lootbox qui a utilisé CE slot précisément
+            $existingLootbox = Lootbox::where('user_id', $userId)
+                ->where('type', LootboxTypes::QUOTIDIAN)
+                ->where('slot_used_at', $slot['timestamp'])
+                ->first();
+
+            $isUsed = $existingLootbox !== null;
+
+            $allSlotsInfo[] = [
+                'time' => $slot['time'],
+                'timestamp' => $slot['timestamp']->toIso8601String(),
+                'used' => $isUsed,
+            ];
+
+            if (!$isUsed) {
+                $unusedSlots[] = $slot;
+            }
         }
 
-        // Calcul : slots disponibles - lootboxes ouvertes
-        $remainingCount = max(0, count($availableSlots) - $openedCount);
+        // Calculer le prochain slot disponible (pour le compte à rebours)
+        $nextSlot = count($unusedSlots) > 0 ? $unusedSlots[0] : null;
+        $nextAvailableDateTime = $nextSlot ? $nextSlot['timestamp']->toIso8601String() : null;
 
         $currentTime = $now->format('H:i');
 
         return [
-            'available' => $remainingCount > 0,
-            'count' => $remainingCount,
+            'available' => count($unusedSlots) > 0,
+            'count' => count($unusedSlots),
+            'nextSlot' => $nextSlot,
             'nextTime' => $this->getNextAvailableTime($currentTime),
+            'nextAvailableDateTime' => $nextAvailableDateTime,
+            'slotsInfo' => $allSlotsInfo,
             'debug' => [
                 'now' => $now->format('Y-m-d H:i:s'),
-                'availableSlots' => collect($availableSlots)->map(fn($s) => $s->format('Y-m-d H:i:s'))->toArray(),
-                'oldestSlot' => $oldestSlot?->format('Y-m-d H:i:s'),
-                'openedCount' => $openedCount,
-                'remainingCount' => $remainingCount,
+                'availableSlots' => array_map(fn($s) => [
+                    'time' => $s['time'],
+                    'timestamp' => $s['timestamp']->format('Y-m-d H:i:s'),
+                ], $availableSlots),
+                'unusedSlots' => array_map(fn($s) => [
+                    'time' => $s['time'],
+                    'timestamp' => $s['timestamp']->format('Y-m-d H:i:s'),
+                ], $unusedSlots),
             ]
         ];
     }
@@ -142,6 +162,8 @@ class LootboxService
     /**
      * Retourne tous les slots qui sont passés et encore valides (non expirés).
      * Un slot est valide s'il est passé ET n'a pas encore été remplacé par le prochain cycle.
+     * 
+     * @return array Array de ['time' => 'HH:mm', 'timestamp' => Carbon]
      */
     private function getAvailableSlotsInPeriod(Carbon $now): array
     {
@@ -153,12 +175,18 @@ class LootboxService
 
             if ($todaySlot <= $now) {
                 // Le slot est passé aujourd'hui, donc disponible
-                $slots[] = $todaySlot;
+                $slots[] = [
+                    'time' => $slotTime,
+                    'timestamp' => $todaySlot,
+                ];
             } else {
                 // Le slot n'est pas encore passé aujourd'hui
                 // On prend celui d'hier (qui n'a pas encore été remplacé)
                 $yesterdaySlot = $todaySlot->copy()->subDay();
-                $slots[] = $yesterdaySlot;
+                $slots[] = [
+                    'time' => $slotTime,
+                    'timestamp' => $yesterdaySlot,
+                ];
             }
         }
 

@@ -14,12 +14,14 @@ class Lootbox extends Model
         'name',
         'user_id',
         'type',
+        'slot_used_at',
     ];
 
     public function casts()
     {
         return [
             'type' => LootboxTypes::class,
+            'slot_used_at' => 'datetime',
         ];
     }
 
