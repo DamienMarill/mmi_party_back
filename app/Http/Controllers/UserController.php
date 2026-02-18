@@ -137,7 +137,7 @@ class UserController extends Controller
             if ($template) {
                 // Modify the existing template with user's data
                 $template->mmii_id = $mmii->id;
-                $template->name = $user->firstName . ' ' . $user->lastName;
+                $template->name = $user->name;
                 $template->stats = $skills;
                 $template->base_user = $user->id;
                 $template->save();
@@ -163,7 +163,7 @@ class UserController extends Controller
                 // Create new template
                 $template = new CardTemplate();
                 $template->mmii_id = $mmii->id;
-                $template->name = $user->firstName . ' ' . $user->lastName;
+                $template->name = $user->name;
                 $template->type = CardTypes::STUDENT;
                 $template->level = $level;
                 $template->stats = $skills;
