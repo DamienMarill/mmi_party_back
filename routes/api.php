@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Storage;
 // Public stats (no auth required)
 Route::get('/stats', [\App\Http\Controllers\StatsController::class, 'index']);
 
+// Personal stats (auth required)
+Route::get('/stats/me', [\App\Http\Controllers\StatsController::class, 'me'])->middleware('auth:api');
+
 Route::group(['prefix' => 'auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
