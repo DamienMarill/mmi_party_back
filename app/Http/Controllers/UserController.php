@@ -53,6 +53,12 @@ class UserController extends Controller
 
         $user = auth()->user();
 
+        // Récupérer les IDs des versions de cartes déjà possédées avant cette ouverture
+        $existingVersions = \App\Models\CardInstance::where('user_id', $user->id)
+            ->pluck('card_version_id')
+            ->toArray();
+        $seenInThisBooster = [];
+
         foreach ($loots as $card) {
             $cardInstance = new \App\Models\CardInstance();
             $cardInstance->card_version_id = $card->id;
@@ -61,7 +67,19 @@ class UserController extends Controller
             $cardInstance->save();
         }
 
-        return $lootbox->load(['cards', 'cards.cardVersion', 'cards.cardVersion.cardTemplate', 'cards.cardVersion.cardTemplate.mmii']);
+        $lootbox->load(['cards', 'cards.cardVersion', 'cards.cardVersion.cardTemplate', 'cards.cardVersion.cardTemplate.mmii']);
+
+        // Marquer les cartes obtenues pour la première fois
+        foreach ($lootbox->cards as $cardInstance) {
+            if (!in_array($cardInstance->card_version_id, $existingVersions) && !in_array($cardInstance->card_version_id, $seenInThisBooster)) {
+                $cardInstance->setAttribute('is_new', true);
+                $seenInThisBooster[] = $cardInstance->card_version_id;
+            } else {
+                $cardInstance->setAttribute('is_new', false);
+            }
+        }
+
+        return $lootbox;
     }
 
     public function checkAvailability(Request $request)
