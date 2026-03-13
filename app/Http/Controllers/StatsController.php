@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CardRarity;
 use App\Models\CardInstance;
 use App\Models\CardTemplate;
+use App\Models\CardVersion;
 use App\Models\Lootbox;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class StatsController extends Controller
 {
@@ -20,9 +23,78 @@ class StatsController extends Controller
     {
         return response()->json([
             'registrations' => $this->getRegistrationStats(),
-            'global' => $this->getGlobalStats(),
+            'global'        => $this->getGlobalStats(),
             'boosters_per_day' => $this->getBoostersPerDay(),
-            'podium' => $this->getPodium(),
+            'podium'        => $this->getPodium(),
+        ]);
+    }
+
+    /**
+     * GET /api/stats/me
+     * Statistiques personnelles du joueur authentifié.
+     */
+    public function me(): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        $totalCardVersions = CardVersion::count();
+
+        $uniqueCards = CardInstance::where('user_id', $user->id)
+            ->distinct('card_version_id')
+            ->count('card_version_id');
+
+        $totalCards = CardInstance::where('user_id', $user->id)->count();
+
+        $totalBoosters = Lootbox::where('user_id', $user->id)->count();
+
+        // Répartition par rareté des cartes uniques
+        $rarityBreakdown = CardInstance::where('card_instances.user_id', $user->id)
+            ->join('card_versions', 'card_instances.card_version_id', '=', 'card_versions.id')
+            ->select('card_versions.rarity', DB::raw('COUNT(DISTINCT card_instances.card_version_id) as count'))
+            ->groupBy('card_versions.rarity')
+            ->get()
+            ->mapWithKeys(fn($row) => [
+                $row->rarity => [
+                    'count' => $row->count,
+                    'label' => CardRarity::from($row->rarity)->label(),
+                ]
+            ]);
+
+        // Rang dans le classement global
+        $rank = CardInstance::select('user_id', DB::raw('COUNT(DISTINCT card_version_id) as unique_cards'))
+            ->groupBy('user_id')
+            ->orderByDesc('unique_cards')
+            ->get()
+            ->search(fn($row) => $row->user_id === $user->id);
+
+        // Conversion en rang de compétition standard
+        $collectors = CardInstance::select('user_id', DB::raw('COUNT(DISTINCT card_version_id) as unique_cards'))
+            ->groupBy('user_id')
+            ->orderByDesc('unique_cards')
+            ->get();
+        $globalRank = null;
+        $r = 1;
+        foreach ($collectors as $i => $c) {
+            if ($i > 0 && $c->unique_cards < $collectors[$i - 1]->unique_cards) {
+                $r = $i + 1;
+            }
+            if ($c->user_id === $user->id) {
+                $globalRank = $r;
+                break;
+            }
+        }
+
+        return response()->json([
+            'unique_cards'      => $uniqueCards,
+            'total_cards'       => $totalCards,
+            'total_versions'    => $totalCardVersions,
+            'completion_rate'   => $totalCardVersions > 0
+                ? round(($uniqueCards / $totalCardVersions) * 100, 1)
+                : 0,
+            'total_boosters'    => $totalBoosters,
+            'rarity_breakdown'  => $rarityBreakdown,
+            'global_rank'       => $globalRank,
         ]);
     }
 
@@ -63,7 +135,10 @@ class StatsController extends Controller
         return [
             'total_boosters' => Lootbox::count(),
             'total_cards' => CardInstance::count(),
-            'active_players' => User::where('updated_at', '>=', Carbon::now()->subDays(7))->count(),
+            // Joueurs ayant ouvert au moins un booster dans les 7 derniers jours
+            'active_players' => Lootbox::where('created_at', '>=', Carbon::now()->subDays(7))
+                ->distinct('user_id')
+                ->count('user_id'),
         ];
     }
 
@@ -94,21 +169,31 @@ class StatsController extends Controller
         $topCollectors = CardInstance::select('user_id', DB::raw('COUNT(DISTINCT card_version_id) as unique_cards'))
             ->groupBy('user_id')
             ->orderByDesc('unique_cards')
-            ->limit(3)
-            ->with('user:id,name')
+            ->limit(10)
             ->get();
 
-        // Charger les users séparément pour éviter les problèmes avec le with + groupBy
         $result = [];
-        foreach ($topCollectors as $index => $collector) {
-            $user = User::find($collector->user_id);
+        $rank = 1;
+
+        foreach ($topCollectors as $i => $collector) {
+            // Ranking par compétition standard (1,1,3,4...) : en cas d'égalité même rang, le suivant saute
+            if ($i > 0 && $collector->unique_cards < $result[$i - 1]['unique_cards']) {
+                $rank = $i + 1;
+            }
+
+            $user = User::with('mmii')->find($collector->user_id);
             $result[] = [
-                'rank' => $index + 1,
-                'name' => $user?->name ?? 'Inconnu',
+                'rank'         => $rank,
+                'name'         => $user?->name ?? 'Inconnu',
                 'unique_cards' => $collector->unique_cards,
+                'mmii'         => $user?->mmii ? [
+                    'shape'      => $user->mmii->shape,
+                    'background' => $user->mmii->background,
+                ] : null,
             ];
         }
 
         return $result;
     }
 }
+
