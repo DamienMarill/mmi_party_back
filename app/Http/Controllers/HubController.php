@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\HubType;
 use App\Enums\InvitationStatus;
+use App\Models\CardInstance;
 use App\Models\HubInvitation;
 use App\Models\HubRoom;
 use App\Models\User;
@@ -240,6 +241,24 @@ class HubController extends Controller
             return response()->json(['error' => 'Non autorisé'], 403);
         }
 
+        // Hydrater l'état du trade avec les cartes
+        $state = $room->metadata ?? [
+            'player_one_card_id' => null,
+            'player_two_card_id' => null,
+            'player_one_validated' => false,
+            'player_two_validated' => false,
+            'player_one_accepted' => false,
+            'player_two_accepted' => false,
+        ];
+
+        $hydratedState = $state;
+        $hydratedState['player_one_card'] = !empty($state['player_one_card_id'])
+            ? CardInstance::with('cardVersion.cardTemplate.mmii')->find($state['player_one_card_id'])
+            : null;
+        $hydratedState['player_two_card'] = !empty($state['player_two_card_id'])
+            ? CardInstance::with('cardVersion.cardTemplate.mmii')->find($state['player_two_card_id'])
+            : null;
+
         return response()->json([
             'room' => [
                 'id' => $room->id,
@@ -255,6 +274,7 @@ class HubController extends Controller
                     'name' => $room->playerTwo->name,
                     'mmii' => $room->playerTwo->mmii,
                 ],
+                'trade_state' => $hydratedState,
                 'created_at' => $room->created_at->toISOString(),
             ],
         ]);

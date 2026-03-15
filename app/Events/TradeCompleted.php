@@ -6,22 +6,24 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class TradeCompleted implements ShouldBroadcast
+class TradeCompleted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public string $roomId;
+    public array $resetState;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(string $roomId)
+    public function __construct(string $roomId, array $resetState = [])
     {
         $this->roomId = $roomId;
+        $this->resetState = $resetState;
     }
 
     /**
@@ -32,7 +34,7 @@ class TradeCompleted implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('hub-room.' . $this->roomId),
+            new PresenceChannel('hub-room.' . $this->roomId),
         ];
     }
 
