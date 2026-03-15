@@ -90,6 +90,7 @@ class CardInstanceResource extends Resource
                     ->label('Fullart')
                     ->disk('public')
                     ->height(40)
+                    ->state(fn ($record) => $record->cardVersion?->image ? 'fullart/' . $record->cardVersion->image : null)
                     ->defaultImageUrl(fn () => null)
                     ->toggleable(),
 
