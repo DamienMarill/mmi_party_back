@@ -54,7 +54,7 @@ class CardVersionResource extends Resource
                                 $files = Storage::disk('public')->files('fullart');
                                 return collect($files)
                                     ->mapWithKeys(fn (string $file) => [
-                                        $file => basename($file),
+                                        basename($file) => basename($file),
                                     ])
                                     ->toArray();
                             })
@@ -77,6 +77,7 @@ class CardVersionResource extends Resource
                     ->label('Fullart')
                     ->disk('public')
                     ->height(40)
+                    ->state(fn ($record) => $record->image ? 'fullart/' . $record->image : null)
                     ->defaultImageUrl(fn () => null)
                     ->toggleable(),
 

@@ -42,6 +42,7 @@ class CardsRelationManager extends RelationManager
                     ->label('Fullart')
                     ->disk('public')
                     ->height(40)
+                    ->state(fn ($record) => $record->cardVersion?->image ? 'fullart/' . $record->cardVersion->image : null)
                     ->defaultImageUrl(fn () => null),
 
                 Tables\Columns\TextColumn::make('user.name')
