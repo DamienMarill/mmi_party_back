@@ -123,67 +123,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // Taux de drop par rareté pour chaque slot du booster (5 slots)
     'loot_rate' => [
-        [
-            [
-                'type' => 'student',
-                'level' => 1,
-                'drop' => 1,
-            ]
-        ],
-        [
-            [
-                'type' => 'student',
-                'level' => 1,
-                'drop' => 1,
-            ]
-        ],
-        [
-            [
-                'type' => 'student',
-                'level' => 2,
-                'drop' => 0.7,
-            ],
-            [
-                'type' => 'student',
-                'level' => 3,
-                'drop' => 0.25,
-            ],
-            [
-                'type' => 'staff',
-                'level' => null,
-                'drop' => 0.05,
-            ]
-        ],
-        [
-            [
-                'type' => 'student',
-                'level' => 2,
-                'drop' => 0.6,
-            ],
-            [
-                'type' => 'student',
-                'level' => 3,
-                'drop' => 0.35,
-            ],
-            [
-                'type' => 'staff',
-                'level' => null,
-                'drop' => 0.05,
-            ]
-        ],
-        [
-            [
-                'type' => 'staff',
-                'level' => null,
-                'drop' => 0.2,
-            ],
-            [
-                'type' => 'object',
-                'level' => null,
-                'drop' => 0.8,
-            ]
-        ]
+        // Slot 0 : garanti common
+        ['common' => 1.00, 'uncommon' => 0.00, 'rare' => 0.00, 'epic' => 0.00],
+        // Slot 1 : garanti common
+        ['common' => 0.75, 'uncommon' => 0.25, 'rare' => 0.00, 'epic' => 0.00],
+        // Slot 2 : principalement common, chance d'uncommon
+        ['common' => 0.5, 'uncommon' => 0.40, 'rare' => 0.09, 'epic' => 0.01],
+        // Slot 3 : mix équilibré
+        ['common' => 0.30, 'uncommon' => 0.50, 'rare' => 0.17, 'epic' => 0.03],
+        // Slot 4 : slot "rare+" avec meilleures chances
+        ['common' => 0.00, 'uncommon' => 0.35, 'rare' => 0.60, 'epic' => 0.05],
     ],
     'lootbox_times' => [
         '12:35',
