@@ -83,6 +83,14 @@ Route::group(['prefix' => 'hub', 'middleware' => ['auth:api', EnsureEmailIsVerif
     Route::get('/rooms/{roomId}', [\App\Http\Controllers\HubController::class, 'getRoom']);
 });
 
+// Trade - Routes pour la gestion des échanges en temps réel
+Route::group(['prefix' => 'trade', 'middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
+    Route::post('/{roomId}/select-card', [\App\Http\Controllers\TradeController::class, 'selectCard']);
+    Route::post('/{roomId}/validate', [\App\Http\Controllers\TradeController::class, 'validateSelection']);
+    Route::post('/{roomId}/accept', [\App\Http\Controllers\TradeController::class, 'acceptTrade']);
+    Route::post('/{roomId}/cancel', [\App\Http\Controllers\TradeController::class, 'cancelTrade']);
+});
+
 Route::get('assets/{path}', function ($path) {
     // Vérifie si le fichier existe
     if (!Storage::disk('public')->exists($path)) {

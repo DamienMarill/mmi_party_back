@@ -1,0 +1,26 @@
+
+   INFO  Running migrations.  
+
+  2026_03_14_175158_create_trade_logs_table  208.82ms FAIL
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[HY000]: General error: 1822 Failed to add the foreign key constraint. Missing index for constraint 'trade_logs_card_instance_1_id_foreign' in the referenced table 'card_instances' (Connection: mysql, SQL: alter table `trade_logs` add constraint `trade_logs_card_instance_1_id_foreign` foreign key (`card_instance_1_id`) references `card_instances` (`id`) on delete cascade)
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:825
+    821Ôûò                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    822Ôûò                 );
+    823Ôûò             }
+    824Ôûò 
+  Ô×£ 825Ôûò             throw new QueryException(
+    826Ôûò                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    827Ôûò             );
+    828Ôûò         }
+    829Ôûò     }
+
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:571
+      PDOException::("SQLSTATE[HY000]: General error: 1822 Failed to add the foreign key constraint. Missing index for constraint 'trade_logs_card_instance_1_id_foreign' in the referenced table 'card_instances'")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:571
+      PDOStatement::execute()
+
