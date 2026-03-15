@@ -40,15 +40,15 @@ class TradeController extends Controller
     private function getHydratedState(array $state): array
     {
         $hydrated = $state;
-        
+
         if (!empty($state['player_one_card_id'])) {
-            $hydrated['player_one_card'] = CardInstance::with('cardVersion')->find($state['player_one_card_id']);
+            $hydrated['player_one_card'] = CardInstance::with('cardVersion.cardTemplate.mmii')->find($state['player_one_card_id']);
         } else {
             $hydrated['player_one_card'] = null;
         }
 
         if (!empty($state['player_two_card_id'])) {
-            $hydrated['player_two_card'] = CardInstance::with('cardVersion')->find($state['player_two_card_id']);
+            $hydrated['player_two_card'] = CardInstance::with('cardVersion.cardTemplate.mmii')->find($state['player_two_card_id']);
         } else {
             $hydrated['player_two_card'] = null;
         }
@@ -66,25 +66,61 @@ class TradeController extends Controller
     }
 
     /**
+     * GET /api/trade/daily-count
+     * Retourne le nombre d'échanges effectués aujourd'hui et la limite
+     */
+    public function dailyCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $todayReset = Carbon::now()->subHours(4)->startOfDay()->addHours(4);
+
+        $count = TradeLog::where(function ($q) use ($user) {
+            $q->where('user_1_id', $user->id)->orWhere('user_2_id', $user->id);
+        })->where('created_at', '>=', $todayReset)->count();
+
+        return response()->json([
+            'used' => $count,
+            'limit' => 5,
+        ]);
+    }
+
+    /**
      * POST /api/trade/{roomId}/select-card
      */
     public function selectCard(string $roomId, Request $request): JsonResponse
     {
-        $request->validate(['card_instance_id' => 'required|uuid']);
-        
+        $request->validate([
+            'card_instance_id' => 'nullable|uuid',
+            'card_version_id' => 'nullable|uuid',
+        ]);
+
+        if (!$request->input('card_instance_id') && !$request->input('card_version_id')) {
+            return response()->json(['error' => 'card_instance_id ou card_version_id requis'], 422);
+        }
+
         $user = $request->user();
         $room = $this->getRoomAndCheckAccess($roomId, $user);
-        
+
         if (!$room) {
             return response()->json(['error' => 'Room invalide ou non autorisée'], 403);
         }
 
-        $cardId = $request->input('card_instance_id');
-        $card = CardInstance::where('id', $cardId)->where('user_id', $user->id)->first();
-        
+        // Trouver une instance soit par ID direct, soit par card_version_id
+        if ($request->input('card_instance_id')) {
+            $card = CardInstance::where('id', $request->input('card_instance_id'))
+                ->where('user_id', $user->id)
+                ->first();
+        } else {
+            $card = CardInstance::where('card_version_id', $request->input('card_version_id'))
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
         if (!$card) {
             return response()->json(['error' => 'Cette carte ne vous appartient pas'], 403);
         }
+
+        $cardId = $card->id;
 
         $state = $this->getTradeState($room);
 
@@ -126,16 +162,16 @@ class TradeController extends Controller
             return response()->json(['error' => 'Veuillez d\'abord sélectionner une carte'], 400);
         }
 
-        // Règle Métier : Si l'autre a déjà validé, on vérifie la rareté
+        // Règle Métier : Si l'autre a sélectionné une carte, vérifier la rareté
         $otherCardId = $isPlayerOne ? $state['player_two_card_id'] : $state['player_one_card_id'];
-        $otherValidated = $isPlayerOne ? $state['player_two_validated'] : $state['player_one_validated'];
 
-        if ($otherValidated && $otherCardId) {
+        if ($otherCardId) {
             $myCard = CardInstance::with('cardVersion')->find($myCardId);
             $otherCard = CardInstance::with('cardVersion')->find($otherCardId);
 
             if ($myCard->cardVersion->rarity !== $otherCard->cardVersion->rarity) {
-                return response()->json(['error' => 'Les cartes doivent être de même rareté'], 400);
+                $otherRarity = $otherCard->cardVersion->rarity->value;
+                return response()->json(['error' => "Les cartes doivent être de même rareté (l'autre carte est {$otherRarity})"], 400);
             }
         }
 
@@ -148,6 +184,43 @@ class TradeController extends Controller
         $this->saveTradeState($room, $state);
 
         return response()->json(['message' => 'Choix validé', 'state' => $this->getHydratedState($state)]);
+    }
+
+    /**
+     * POST /api/trade/{roomId}/unvalidate
+     * Déverrouille le choix du joueur (annule validation + acceptation des deux)
+     */
+    public function unvalidateSelection(string $roomId, Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $room = $this->getRoomAndCheckAccess($roomId, $user);
+
+        if (!$room) {
+            return response()->json(['error' => 'Room invalide ou non autorisée'], 403);
+        }
+
+        $state = $this->getTradeState($room);
+        $isPlayerOne = $user->id === $room->player_one_id;
+
+        $myValidated = $isPlayerOne ? $state['player_one_validated'] : $state['player_two_validated'];
+        if (!$myValidated) {
+            return response()->json(['error' => 'Votre choix n\'est pas verrouillé'], 400);
+        }
+
+        // Déverrouiller mon choix
+        if ($isPlayerOne) {
+            $state['player_one_validated'] = false;
+        } else {
+            $state['player_two_validated'] = false;
+        }
+
+        // Reset les acceptations des deux côtés (plus valide si un choix change)
+        $state['player_one_accepted'] = false;
+        $state['player_two_accepted'] = false;
+
+        $this->saveTradeState($room, $state);
+
+        return response()->json(['message' => 'Choix déverrouillé', 'state' => $this->getHydratedState($state)]);
     }
 
     /**
@@ -226,15 +299,23 @@ class TradeController extends Controller
                 'card_instance_2_id' => $card2->id,
             ]);
 
-            // Fermeture de la room
-            $room->status = RoomStatus::COMPLETED;
+            // Reset de la room pour permettre un nouvel échange
+            $resetState = [
+                'player_one_card_id' => null,
+                'player_two_card_id' => null,
+                'player_one_validated' => false,
+                'player_two_validated' => false,
+                'player_one_accepted' => false,
+                'player_two_accepted' => false,
+            ];
+            $room->metadata = $resetState;
             $room->save();
 
             DB::commit();
 
-            broadcast(new TradeCompleted($room->id))->toOthers();
+            broadcast(new TradeCompleted($room->id, $resetState))->toOthers();
 
-            return response()->json(['message' => 'Échange finalisé avec succès', 'state' => $this->getHydratedState($state)]);
+            return response()->json(['message' => 'Échange finalisé avec succès', 'state' => $this->getHydratedState($resetState)]);
 
         } catch (\Exception $e) {
             DB::rollBack();

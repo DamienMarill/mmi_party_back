@@ -29,8 +29,11 @@ Broadcast::channel('hub.{type}', function (User $user, string $type) {
     ];
 });
 
-// Canal privé room — seuls les deux joueurs de la room
+// Canal de présence room — seuls les deux joueurs, détecte les déconnexions
 Broadcast::channel('hub-room.{roomId}', function (User $user, string $roomId) {
     $room = HubRoom::find($roomId);
-    return $room && ($user->id === $room->player_one_id || $user->id === $room->player_two_id);
+    if ($room && ($user->id === $room->player_one_id || $user->id === $room->player_two_id)) {
+        return ['id' => $user->id, 'name' => $user->name];
+    }
+    return false;
 });

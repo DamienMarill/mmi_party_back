@@ -85,8 +85,10 @@ Route::group(['prefix' => 'hub', 'middleware' => ['auth:api', EnsureEmailIsVerif
 
 // Trade - Routes pour la gestion des échanges en temps réel
 Route::group(['prefix' => 'trade', 'middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], function () {
+    Route::get('/daily-count', [\App\Http\Controllers\TradeController::class, 'dailyCount']);
     Route::post('/{roomId}/select-card', [\App\Http\Controllers\TradeController::class, 'selectCard']);
     Route::post('/{roomId}/validate', [\App\Http\Controllers\TradeController::class, 'validateSelection']);
+    Route::post('/{roomId}/unvalidate', [\App\Http\Controllers\TradeController::class, 'unvalidateSelection']);
     Route::post('/{roomId}/accept', [\App\Http\Controllers\TradeController::class, 'acceptTrade']);
     Route::post('/{roomId}/cancel', [\App\Http\Controllers\TradeController::class, 'cancelTrade']);
 });
