@@ -8,7 +8,6 @@ enum CardRarity: string
     case UNCOMMON = 'uncommon';
     case RARE = 'rare';
     case EPIC = 'epic';
-    case LEGENDARY = 'legendary';
 
     public static function values(): array
     {
@@ -22,18 +21,6 @@ enum CardRarity: string
             self::UNCOMMON => 'Peu commune',
             self::RARE => 'Rare',
             self::EPIC => 'Épique',
-            self::LEGENDARY => 'Légendaire',
-        };
-    }
-
-    public function dropRate(): float
-    {
-        return match ($this) {
-            self::COMMON => 0.70,
-            self::UNCOMMON => 0.20,
-            self::RARE => 0.08,
-            self::EPIC => 0.02,
-            self::LEGENDARY => 0,
         };
     }
 
@@ -44,7 +31,6 @@ enum CardRarity: string
             self::UNCOMMON->value,
             self::RARE->value,
             self::EPIC->value,
-            self::LEGENDARY->value,
         ];
     }
 }
