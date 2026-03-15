@@ -1,0 +1,26 @@
+
+   INFO  Running migrations.  
+
+  2026_03_14_175158_create_trade_logs_table  10.55ms FAIL
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'trade_logs' already exists (Connection: mysql, SQL: create table `trade_logs` (`id` char(36) not null, `user_1_id` char(36) not null, `user_2_id` char(36) not null, `card_instance_1_id` char(36) not null, `card_instance_2_id` char(36) not null, `created_at` timestamp null, `updated_at` timestamp null, primary key (`id`)) default character set utf8mb4 collate 'utf8mb4_unicode_ci')
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:825
+    821Ôûò                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    822Ôûò                 );
+    823Ôûò             }
+    824Ôûò 
+  Ô×£ 825Ôûò             throw new QueryException(
+    826Ôûò                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    827Ôûò             );
+    828Ôûò         }
+    829Ôûò     }
+
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:571
+      PDOException::("SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'trade_logs' already exists")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:571
+      PDOStatement::execute()
+
