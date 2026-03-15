@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements JWTSubject, MustVerifyEmail
+class User extends Authenticatable implements JWTSubject, MustVerifyEmail, FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasUuids;
@@ -33,6 +35,7 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         'moodle_id',
         'moodle_username',
         'email_verified_at',
+        'is_admin',
     ];
 
     /**
@@ -56,6 +59,7 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'groupe' => UserGroups::class,
+            'is_admin' => 'boolean',
         ];
     }
 
@@ -69,6 +73,11 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
             'github_id' => 'nullable|string',
             'groupe' => 'required|enum:' . UserGroups::class,
         ];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->is_admin;
     }
 
     public function getJWTIdentifier()

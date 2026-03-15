@@ -26,9 +26,10 @@ class MoodleAuthController extends Controller
     public function redirect(Request $request): JsonResponse|RedirectResponse
     {
         $state = $this->moodleService->generateState();
+        $from = $request->query('from', 'app');
 
-        // Store state in cache for CSRF validation (5 minutes)
-        Cache::put("moodle_oauth_state_{$state}", true, now()->addMinutes(5));
+        // Store state + origin in cache for CSRF validation (5 minutes)
+        Cache::put("moodle_oauth_state_{$state}", ['from' => $from], now()->addMinutes(5));
 
         $authUrl = $this->moodleService->getAuthorizationUrl($state);
 
@@ -64,9 +65,12 @@ class MoodleAuthController extends Controller
         }
 
         // Validate state (CSRF protection)
-        if (!Cache::pull("moodle_oauth_state_{$state}")) {
+        $stateData = Cache::pull("moodle_oauth_state_{$state}");
+        if (!$stateData) {
             return $this->redirectToFrontend('error', ['message' => 'Session expirée, veuillez réessayer']);
         }
+
+        $from = is_array($stateData) ? ($stateData['from'] ?? 'app') : 'app';
 
         try {
             // Exchange code for token
@@ -87,6 +91,9 @@ class MoodleAuthController extends Controller
 
             // Validate access (must be in MMI or Enseignants MMI)
             if (!$this->moodleService->hasRequiredCohorts($cohorts)) {
+                if ($from === 'admin') {
+                    return redirect()->to('/admin/login?error=' . urlencode('Accès réservé aux étudiants et enseignants MMI'));
+                }
                 return $this->redirectToFrontend('error', [
                     'message' => 'Accès réservé aux étudiants et enseignants MMI'
                 ]);
@@ -98,15 +105,25 @@ class MoodleAuthController extends Controller
             // Find or create user
             $user = $this->findOrCreateUser($moodleUser, $group);
 
-            // Generate JWT tokens
+            // Admin panel flow: store user in cache, redirect to web route for session login
+            if ($from === 'admin') {
+                if (!$user->is_admin) {
+                    return redirect()->to('/admin/login?error=' . urlencode('Vous n\'avez pas les droits administrateur.'));
+                }
+
+                $loginToken = Str::random(64);
+                Cache::put("admin_login_token_{$loginToken}", $user->id, now()->addMinutes(1));
+
+                return redirect()->to('/admin/auth/moodle/finalize?token=' . $loginToken);
+            }
+
+            // API flow: JWT tokens + redirect to frontend
             $token = \PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth::fromUser($user);
             $refreshToken = $this->createRefreshToken($user);
 
             // Check if user needs to complete registration (no MMII avatar)
             $needsFinalization = !$user->mmii_id;
 
-            // Redirect to frontend success page (always)
-            // The Angular component will handle internal routing after storing tokens
             return $this->redirectToFrontend('success', [
                 'access_token' => $token,
                 'refresh_token' => $refreshToken->token,
@@ -120,10 +137,42 @@ class MoodleAuthController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
+            if ($from === 'admin') {
+                return redirect()->to('/admin/login?error=' . urlencode('Erreur lors de la connexion Moodle'));
+            }
+
             return $this->redirectToFrontend('error', [
                 'message' => 'Erreur lors de la connexion Moodle'
             ]);
         }
+    }
+
+    /**
+     * Finalize admin login via session (called from web route with session middleware).
+     */
+    public function adminFinalize(Request $request): RedirectResponse
+    {
+        $token = $request->query('token');
+
+        if (!$token) {
+            return redirect()->to('/admin/login?error=' . urlencode('Token manquant.'));
+        }
+
+        $userId = Cache::pull("admin_login_token_{$token}");
+
+        if (!$userId) {
+            return redirect()->to('/admin/login?error=' . urlencode('Session expirée, veuillez réessayer.'));
+        }
+
+        $user = User::find($userId);
+
+        if (!$user || !$user->is_admin) {
+            return redirect()->to('/admin/login?error=' . urlencode('Accès non autorisé.'));
+        }
+
+        auth()->guard('web')->login($user);
+
+        return redirect()->to('/admin');
     }
 
     /**
