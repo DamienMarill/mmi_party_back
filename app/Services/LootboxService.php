@@ -17,7 +17,7 @@ class LootboxService
         $rarity = $this->rollRarity($slotIndex);
 
         return CardVersion::where('rarity', $rarity)
-            ->inRandomOrder()
+            ->orderByRaw('RAND()')
             ->firstOrFail();
     }
 
