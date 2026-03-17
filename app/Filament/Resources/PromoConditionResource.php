@@ -32,8 +32,12 @@ class PromoConditionResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('card_version_id')
                             ->label('Version de carte')
-                            ->relationship('cardVersion', 'id')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->cardTemplate?->name . ' (' . $record->rarity->label() . ')')
+                            ->relationship(
+                                'cardVersion',
+                                'id',
+                                fn ($query) => $query->whereHas('cardTemplate', fn ($q) => $q->where('type', 'promo'))->with('cardTemplate')
+                            )
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->cardTemplate?->name . ' — ' . $record->rarity->label())
                             ->searchable()
                             ->preload()
                             ->required(),
