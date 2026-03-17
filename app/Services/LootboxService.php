@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CardRarity;
+use App\Enums\CardTypes;
 use App\Enums\LootboxTypes;
 use App\Models\CardVersion;
 use App\Models\Lootbox;
@@ -17,6 +18,7 @@ class LootboxService
         $rarity = $this->rollRarity($slotIndex);
 
         return CardVersion::where('rarity', $rarity)
+            ->whereHas('cardTemplate', fn ($q) => $q->where('type', '!=', CardTypes::PROMO))
             ->orderByRaw('RAND()')
             ->firstOrFail();
     }

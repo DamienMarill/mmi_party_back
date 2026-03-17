@@ -22,7 +22,7 @@ class CardInstance extends Model
     {
         return [
             'card_version_id' => 'required|exists:card_versions,id',
-            'lootbox_id' => 'required|exists:lootboxes,id',
+            'lootbox_id' => 'nullable|exists:lootboxes,id',
             'user_id' => 'required|exists:users,id',
         ];
     }
@@ -54,23 +54,23 @@ class CardInstance extends Model
     public function scopeOrderByCardAttributes(Builder $query): Builder
     {
         $rarityOrder = implode(',', array_map(
-            fn($value) => "'" . $value . "'",
+            fn ($value) => "'".$value."'",
             CardRarity::getOrderedValues()
         ));
 
         $typeOrder = implode(',', array_map(
-            fn($value) => "'" . $value . "'",
+            fn ($value) => "'".$value."'",
             CardTypes::getOrderedValues()
         ));
 
         return $query->with(['cardVersion.cardTemplate'])
-            ->orderByRaw("FIELD((". CardVersion::select('rarity')
-                    ->whereColumn('card_versions.id', 'card_instances.card_version_id')
-                    ->toSql() ."), {$rarityOrder})")
-            ->orderByRaw("FIELD((". CardTemplate::select('type')
-                    ->join('card_versions', 'card_templates.id', '=', 'card_versions.card_template_id')
-                    ->whereColumn('card_versions.id', 'card_instances.card_version_id')
-                    ->toSql() ."), {$typeOrder})")
+            ->orderByRaw('FIELD(('.CardVersion::select('rarity')
+                ->whereColumn('card_versions.id', 'card_instances.card_version_id')
+                ->toSql()."), {$rarityOrder})")
+            ->orderByRaw('FIELD(('.CardTemplate::select('type')
+                ->join('card_versions', 'card_templates.id', '=', 'card_versions.card_template_id')
+                ->whereColumn('card_versions.id', 'card_instances.card_version_id')
+                ->toSql()."), {$typeOrder})")
             ->orderBy(CardTemplate::select('level')
                 ->join('card_versions', 'card_templates.id', '=', 'card_versions.card_template_id')
                 ->whereColumn('card_versions.id', 'card_instances.card_version_id'))
@@ -82,7 +82,7 @@ class CardInstance extends Model
     public function scopeGroupByCardVersion(Builder $query): Builder
     {
         return $query->select('card_version_id')
-                    ->selectRaw('COUNT(*) as count')
-                    ->groupBy('card_version_id');
+            ->selectRaw('COUNT(*) as count')
+            ->groupBy('card_version_id');
     }
 }

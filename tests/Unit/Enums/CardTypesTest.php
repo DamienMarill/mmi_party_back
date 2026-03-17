@@ -11,7 +11,7 @@ class CardTypesTest extends TestCase
 
     public function test_has_all_expected_types(): void
     {
-        $expected = ['student', 'staff', 'object'];
+        $expected = ['student', 'staff', 'object', 'promo'];
         $actual = CardTypes::values();
 
         $this->assertEquals($expected, $actual);
@@ -19,7 +19,7 @@ class CardTypesTest extends TestCase
 
     public function test_cases_count(): void
     {
-        $this->assertCount(3, CardTypes::cases());
+        $this->assertCount(4, CardTypes::cases());
     }
 
     // ========== Tests des labels ==========
