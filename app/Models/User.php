@@ -4,21 +4,20 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\UserGroups;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements JWTSubject, MustVerifyEmail, FilamentUser
+class User extends Authenticatable implements FilamentUser, JWTSubject, MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasUuids;
+    use HasFactory, HasUuids, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -71,7 +70,7 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail, Filam
             'um_email' => 'required|email|unique:users|ends_with:umontpellier.fr',
             'password' => 'string|min:8|uppercase|lowercase|number|special|uncompromised',
             'github_id' => 'nullable|string',
-            'groupe' => 'required|enum:' . UserGroups::class,
+            'groupe' => 'required|enum:'.UserGroups::class,
         ];
     }
 
@@ -130,5 +129,10 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail, Filam
     public function roomsAsPlayerTwo(): HasMany
     {
         return $this->hasMany(HubRoom::class, 'player_two_id');
+    }
+
+    public function promoUnlocks(): HasMany
+    {
+        return $this->hasMany(PromoUnlock::class);
     }
 }

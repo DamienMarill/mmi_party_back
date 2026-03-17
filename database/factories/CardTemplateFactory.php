@@ -28,6 +28,7 @@ class CardTemplateFactory extends Factory
             CardTypes::STUDENT => $this->studentCard(),
             CardTypes::STAFF => $this->staffCard(),
             CardTypes::OBJECT => $this->objectCard(),
+            CardTypes::PROMO => $this->promoCard(),
         };
     }
 
@@ -86,6 +87,19 @@ class CardTemplateFactory extends Factory
                 'Claude.ai',
             ]),
             'type' => CardTypes::OBJECT,
+            'level' => null,
+            'stats' => null,
+            'shape' => null,
+            'mmii_id' => null,
+            'base_user' => null,
+        ];
+    }
+
+    private function promoCard(): array
+    {
+        return [
+            'name' => $this->faker->words(2, true),
+            'type' => CardTypes::PROMO,
             'level' => null,
             'stats' => null,
             'shape' => null,

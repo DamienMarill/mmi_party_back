@@ -7,6 +7,7 @@ enum CardTypes: string
     case STUDENT = 'student';
     case STAFF = 'staff';
     case OBJECT = 'object';
+    case PROMO = 'promo';
 
     public static function values(): array
     {
@@ -19,15 +20,17 @@ enum CardTypes: string
             self::STUDENT => 'Étudiant',
             self::STAFF => 'Personnel',
             self::OBJECT => 'Objet',
+            self::PROMO => 'Promo',
         };
     }
 
-    static public function getOrderedValues()
+    public static function getOrderedValues()
     {
         return [
             self::STUDENT->value,
             self::STAFF->value,
             self::OBJECT->value,
+            self::PROMO->value,
         ];
     }
 }

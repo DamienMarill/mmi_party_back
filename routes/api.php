@@ -5,6 +5,7 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\MMIIPartsController;
 use App\Http\Controllers\MoodleAuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PromoController;
 use App\Http\Middleware\EnsureEmailIsVerifiedApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +54,7 @@ Route::group(['middleware' => ['auth:api', EnsureEmailIsVerifiedApi::class]], fu
     Route::group(['prefix' => '/me'], function () {
         Route::get('/loot', [UserController::class, 'getLoot']);
         Route::get('/loot/availability', [UserController::class, 'checkAvailability']);
+        Route::get('/promos/check', [PromoController::class, 'check']);
         //    Route::put('/', [AuthController::class, 'update']);
 //    Route::put('/password', [AuthController::class, 'updatePassword']);
 //    Route::post('/logout', [AuthController::class, 'logout']);
