@@ -224,6 +224,39 @@ class HubController extends Controller
     }
 
     /**
+     * GET /hub/rooms/{roomId}/opponent-collection
+     * Retourne les card_version_id de la collection de l'adversaire
+     * pour permettre d'identifier les cartes qu'il ne possède pas encore
+     */
+    public function opponentCollection(string $roomId, Request $request): JsonResponse
+    {
+        $room = HubRoom::find($roomId);
+
+        if (!$room) {
+            return response()->json(['error' => 'Room introuvable'], 404);
+        }
+
+        if (!$room->hasPlayer($request->user())) {
+            return response()->json(['error' => 'Non autorisé'], 403);
+        }
+
+        // Déterminer l'adversaire
+        $opponentId = $room->player_one_id === $request->user()->id
+            ? $room->player_two_id
+            : $room->player_one_id;
+
+        // Récupérer les card_version_id distincts que l'adversaire possède
+        $opponentCardVersionIds = CardInstance::where('user_id', $opponentId)
+            ->pluck('card_version_id')
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'card_version_ids' => $opponentCardVersionIds,
+        ]);
+    }
+
+    /**
      * GET /hub/rooms/{roomId}
      * Retourne les infos d'une room active
      */

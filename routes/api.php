@@ -83,6 +83,7 @@ Route::group(['prefix' => 'hub', 'middleware' => ['auth:api', EnsureEmailIsVerif
     Route::post('/{type}/invitations/{id}/decline', [\App\Http\Controllers\HubController::class, 'declineInvitation']);
     Route::post('/{type}/invitations/{id}/cancel', [\App\Http\Controllers\HubController::class, 'cancelInvitation']);
     Route::get('/rooms/{roomId}', [\App\Http\Controllers\HubController::class, 'getRoom']);
+    Route::get('/rooms/{roomId}/opponent-collection', [\App\Http\Controllers\HubController::class, 'opponentCollection']);
 });
 
 // Trade - Routes pour la gestion des échanges en temps réel
