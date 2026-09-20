@@ -18,9 +18,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        // Annuler dans l'ordre inverse
-        DB::table('users')->where('groupe', 'mmi2')->update(['groupe' => 'mmi1']);
-        DB::table('users')->where('groupe', 'mmi3')->update(['groupe' => 'mmi2']);
-        DB::table('users')->where('groupe', 'alumni')->update(['groupe' => 'mmi3']);
+        throw new \RuntimeException('Cette migration de transition annuelle n\'est pas réversible sans perte de données.');
     }
 };
