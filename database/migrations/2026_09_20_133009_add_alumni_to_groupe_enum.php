@@ -1,15 +1,12 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table): void {
-            $table->enum('groupe', ['student', 'staff', 'mmi1', 'mmi2', 'mmi3', 'misc', 'alumni'])->change();
-        });
+        DB::statement("ALTER TABLE users MODIFY COLUMN groupe ENUM('student', 'staff', 'mmi1', 'mmi2', 'mmi3', 'misc', 'alumni')");
     }
 
     public function down(): void
