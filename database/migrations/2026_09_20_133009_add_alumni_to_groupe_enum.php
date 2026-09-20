@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -15,10 +14,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        DB::table('users')->where('groupe', 'alumni')->update(['groupe' => 'mmi3']);
-
-        Schema::table('users', function (Blueprint $table): void {
-            $table->enum('groupe', ['student', 'staff', 'mmi1', 'mmi2', 'mmi3', 'misc'])->change();
-        });
+        throw new \RuntimeException('Cette migration n\'est pas réversible sans risque de corruption des données alumni.');
     }
 };
