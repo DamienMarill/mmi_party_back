@@ -36,10 +36,10 @@ class LootboxService
     private function applyStudentRarityProgressionFilter(Builder $query, int $expectedStudentLevel): void
     {
         $query->whereHas('cardTemplate', function ($q) use ($expectedStudentLevel): void {
-            $q->where('type', '!=', CardTypes::STUDENT)
+            $q->where('type', '!=', CardTypes::STUDENT->value)
                 ->orWhere(function ($studentQuery) use ($expectedStudentLevel): void {
                     $studentQuery
-                        ->where('type', CardTypes::STUDENT)
+                        ->where('type', CardTypes::STUDENT->value)
                         ->where('level', $expectedStudentLevel);
                 });
         });

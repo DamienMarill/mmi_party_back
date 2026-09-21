@@ -145,7 +145,28 @@ class LootboxEligibilityTest extends TestCase
             'rarity' => CardRarity::EPIC,
         ]);
 
-        $loot = (new LootboxService())->generateLoot(0);
-        $this->assertTrue($loot->is($epicStudentVersion));
+        $epicObjectTemplate = CardTemplate::factory()->create([
+            'type' => CardTypes::OBJECT,
+            'level' => null,
+            'is_lootable' => true,
+        ]);
+        CardVersion::factory()->create([
+            'card_template_id' => $epicObjectTemplate->id,
+            'rarity' => CardRarity::EPIC,
+        ]);
+
+        $service = new LootboxService();
+        $studentCardSeen = false;
+
+        for ($i = 0; $i < 20; $i++) {
+            $loot = $service->generateLoot(0);
+
+            if ($loot->is($epicStudentVersion)) {
+                $studentCardSeen = true;
+                break;
+            }
+        }
+
+        $this->assertTrue($studentCardSeen, 'A student epic card should remain eligible for unmapped rarities.');
     }
 }
