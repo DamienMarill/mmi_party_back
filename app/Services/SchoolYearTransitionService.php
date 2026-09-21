@@ -194,7 +194,6 @@ class SchoolYearTransitionService
             ->groupBy('card_template_id');
 
         $idsToKeep = collect();
-        $idsToDelete = collect();
 
         foreach ($baseVersionsByTemplate as $versions) {
             $sourceVersion = $versions->firstWhere('rarity', $fromRarity->value) ?? $versions->first();
@@ -204,24 +203,12 @@ class SchoolYearTransitionService
             }
 
             $idsToKeep->push($sourceVersion->id);
-
-            $idsToDelete = $idsToDelete->merge(
-                $versions
-                    ->pluck('id')
-                    ->reject(fn (string $id): bool => $id === $sourceVersion->id)
-            );
         }
 
         if ($idsToKeep->isNotEmpty()) {
             CardVersion::query()
                 ->whereIn('id', $idsToKeep)
                 ->update(['rarity' => $toRarity->value]);
-        }
-
-        if ($idsToDelete->isNotEmpty()) {
-            CardVersion::query()
-                ->whereIn('id', $idsToDelete->unique()->values())
-                ->delete();
         }
     }
 }

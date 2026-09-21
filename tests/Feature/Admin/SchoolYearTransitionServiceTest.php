@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\CardRarity;
 use App\Enums\CardTypes;
+use App\Models\CardInstance;
 use App\Enums\UserGroups;
 use App\Models\CardTemplate;
 use App\Models\CardVersion;
@@ -35,6 +36,15 @@ class SchoolYearTransitionServiceTest extends TestCase
         CardVersion::factory()->create([
             'card_template_id' => $mmi1Template->id,
             'rarity' => CardRarity::COMMON,
+        ]);
+        $mmi1ExtraVersion = CardVersion::factory()->create([
+            'card_template_id' => $mmi1Template->id,
+            'rarity' => CardRarity::RARE,
+        ]);
+        CardInstance::create([
+            'card_version_id' => $mmi1ExtraVersion->id,
+            'user_id' => $mmi1Real->id,
+            'lootbox_id' => null,
         ]);
 
         $mmi2Template = CardTemplate::factory()->create([
@@ -89,6 +99,14 @@ class SchoolYearTransitionServiceTest extends TestCase
         $this->assertDatabaseHas('card_versions', [
             'card_template_id' => $mmi1Template->id,
             'rarity' => CardRarity::UNCOMMON->value,
+        ]);
+        $this->assertDatabaseHas('card_versions', [
+            'id' => $mmi1ExtraVersion->id,
+            'rarity' => CardRarity::RARE->value,
+        ]);
+        $this->assertDatabaseHas('card_instances', [
+            'card_version_id' => $mmi1ExtraVersion->id,
+            'user_id' => $mmi1Real->id,
         ]);
         $this->assertDatabaseHas('card_versions', [
             'card_template_id' => $mmi2Template->id,
