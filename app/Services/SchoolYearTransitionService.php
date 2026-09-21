@@ -11,6 +11,7 @@ use App\Models\SchoolYearTransition;
 use App\Models\User;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -153,10 +154,7 @@ class SchoolYearTransitionService
                 'is_lootable' => $isLootable,
             ]);
 
-        CardVersion::query()
-            ->whereIn('card_template_id', $templateIds)
-            ->where('rarity', $fromRarity->value)
-            ->update(['rarity' => $toRarity->value]);
+        $this->synchronizeBaseRarity($templateIds, $fromRarity, $toRarity);
     }
 
     private function markSeniorCardsAsNonLootable(): void
@@ -178,9 +176,41 @@ class SchoolYearTransitionService
                 'is_lootable' => false,
             ]);
 
-        CardVersion::query()
-            ->whereIn('card_template_id', $templateIds)
-            ->where('rarity', CardRarity::UNCOMMON->value)
-            ->update(['rarity' => CardRarity::RARE->value]);
+        $this->synchronizeBaseRarity($templateIds, CardRarity::RARE, CardRarity::RARE);
+    }
+
+    private function synchronizeBaseRarity(Collection $templateIds, CardRarity $fromRarity, CardRarity $toRarity): void
+    {
+        foreach ($templateIds as $templateId) {
+            $baseVersions = CardVersion::query()
+                ->where('card_template_id', $templateId)
+                ->whereIn('rarity', [
+                    CardRarity::COMMON->value,
+                    CardRarity::UNCOMMON->value,
+                    CardRarity::RARE->value,
+                ])
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->get(['id', 'rarity']);
+
+            if ($baseVersions->isEmpty()) {
+                continue;
+            }
+
+            $sourceVersion = $baseVersions->firstWhere('rarity', $fromRarity->value) ?? $baseVersions->first();
+
+            CardVersion::query()
+                ->whereKey($sourceVersion->id)
+                ->update(['rarity' => $toRarity->value]);
+
+            $duplicateIds = $baseVersions
+                ->pluck('id')
+                ->reject(fn (string $id): bool => $id === $sourceVersion->id)
+                ->values();
+
+            if ($duplicateIds->isNotEmpty()) {
+                CardVersion::query()->whereIn('id', $duplicateIds)->delete();
+            }
+        }
     }
 }
