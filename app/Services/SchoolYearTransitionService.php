@@ -25,10 +25,11 @@ class SchoolYearTransitionService
         }
 
         return DB::transaction(function () use ($schoolYear, $targets, $executor): array {
+            $this->syncStudentCardsBeforePromotion();
+
             User::query()->where('groupe', UserGroups::MMI3->value)->update(['groupe' => UserGroups::ALUMNI->value]);
             User::query()->where('groupe', UserGroups::MMI2->value)->update(['groupe' => UserGroups::MMI3->value]);
             User::query()->where('groupe', UserGroups::MMI1->value)->update(['groupe' => UserGroups::MMI2->value]);
-            $this->syncStudentCardsAfterPromotion();
 
             $applied = [
                 UserGroups::MMI1->value => $this->syncBotsForTargetPopulation(UserGroups::MMI1, (int) ($targets['mmi1'] ?? 0)),
@@ -120,12 +121,12 @@ class SchoolYearTransitionService
         }
     }
 
-    private function syncStudentCardsAfterPromotion(): void
+    private function syncStudentCardsBeforePromotion(): void
     {
-        $this->syncStudentCardsForGroup(UserGroups::MMI1, 1, CardRarity::COMMON, CardRarity::COMMON, true);
-        $this->syncStudentCardsForGroup(UserGroups::MMI2, 2, CardRarity::COMMON, CardRarity::UNCOMMON, true);
-        $this->syncStudentCardsForGroup(UserGroups::MMI3, 3, CardRarity::UNCOMMON, CardRarity::RARE, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI1, 2, CardRarity::COMMON, CardRarity::UNCOMMON, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI2, 3, CardRarity::UNCOMMON, CardRarity::RARE, true);
         $this->syncStudentCardsForGroup(UserGroups::ALUMNI, 3, CardRarity::RARE, CardRarity::RARE, false);
+        $this->syncStudentCardsForGroup(UserGroups::MMI3, 3, CardRarity::RARE, CardRarity::RARE, false);
     }
 
     private function syncStudentCardsForGroup(
