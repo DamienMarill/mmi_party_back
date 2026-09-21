@@ -10,7 +10,7 @@ use App\Models\CardVersion;
 use App\Models\SchoolYearTransition;
 use App\Models\User;
 use DomainException;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -102,7 +102,7 @@ class SchoolYearTransitionService
         }
     }
 
-    private function botQuery(): Builder
+    private function botQuery(): EloquentBuilder
     {
         return User::query()
             ->whereNull('moodle_id')
@@ -122,22 +122,23 @@ class SchoolYearTransitionService
 
     private function syncStudentCardsAfterPromotion(): void
     {
-        $this->syncStudentCardsForGroup(UserGroups::MMI1, 1, CardRarity::COMMON, true);
-        $this->syncStudentCardsForGroup(UserGroups::MMI2, 2, CardRarity::UNCOMMON, true);
-        $this->syncStudentCardsForGroup(UserGroups::MMI3, 3, CardRarity::RARE, true);
-        $this->syncStudentCardsForGroup(UserGroups::ALUMNI, 3, CardRarity::RARE, false);
+        $this->syncStudentCardsForGroup(UserGroups::MMI1, 1, CardRarity::COMMON, CardRarity::COMMON, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI2, 2, CardRarity::COMMON, CardRarity::UNCOMMON, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI3, 3, CardRarity::UNCOMMON, CardRarity::RARE, true);
+        $this->syncStudentCardsForGroup(UserGroups::ALUMNI, 3, CardRarity::RARE, CardRarity::RARE, false);
     }
 
     private function syncStudentCardsForGroup(
         UserGroups $group,
         int $level,
-        CardRarity $rarity,
+        CardRarity $fromRarity,
+        CardRarity $toRarity,
         bool $isLootable
     ): void {
         $templatesQuery = CardTemplate::query()
             ->where('type', CardTypes::STUDENT->value)
             ->whereNotNull('base_user')
-            ->whereHas('baseUser', fn (Builder $query) => $query->where('groupe', $group->value));
+            ->whereHas('baseUser', fn (EloquentBuilder $query) => $query->where('groupe', $group->value));
 
         $templateIds = $templatesQuery->pluck('id');
 
@@ -154,11 +155,7 @@ class SchoolYearTransitionService
 
         CardVersion::query()
             ->whereIn('card_template_id', $templateIds)
-            ->whereIn('rarity', [
-                CardRarity::COMMON->value,
-                CardRarity::UNCOMMON->value,
-                CardRarity::RARE->value,
-            ])
-            ->update(['rarity' => $rarity->value]);
+            ->where('rarity', $fromRarity->value)
+            ->update(['rarity' => $toRarity->value]);
     }
 }
