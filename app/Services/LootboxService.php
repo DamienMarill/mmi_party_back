@@ -24,27 +24,30 @@ class LootboxService
                 ->where('is_lootable', true));
 
         if ($expectedStudentLevel !== null) {
-            $query->whereHas('cardTemplate', function ($q) use ($expectedStudentLevel): void {
-                $q->where('type', '!=', CardTypes::STUDENT)
-                    ->orWhere(function ($studentQuery) use ($expectedStudentLevel): void {
-                        $studentQuery
-                            ->where('type', CardTypes::STUDENT)
-                            ->where('level', $expectedStudentLevel);
-                    });
-            });
+            $this->applyStudentRarityProgressionFilter($query, $expectedStudentLevel);
         }
 
         return $query->inRandomOrder()->firstOrFail();
     }
 
+    private function applyStudentRarityProgressionFilter($query, int $expectedStudentLevel): void
+    {
+        $query->whereHas('cardTemplate', function ($q) use ($expectedStudentLevel): void {
+            $q->where('type', '!=', CardTypes::STUDENT)
+                ->orWhere(function ($studentQuery) use ($expectedStudentLevel): void {
+                    $studentQuery
+                        ->where('type', CardTypes::STUDENT)
+                        ->where('level', $expectedStudentLevel);
+                });
+        });
+    }
+
     private function expectedStudentLevelForRarity(CardRarity $rarity): ?int
     {
-        return match ($rarity) {
-            CardRarity::COMMON => 1,
-            CardRarity::UNCOMMON => 2,
-            CardRarity::RARE => 3,
-            default => null,
-        };
+        $map = Config::get('app.student_rarity_level_map', []);
+        $level = $map[$rarity->value] ?? null;
+
+        return is_numeric($level) ? (int) $level : null;
     }
 
     private function rollRarity(int $slotIndex): CardRarity

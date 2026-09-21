@@ -200,7 +200,7 @@ class SchoolYearTransitionService
                 continue;
             }
 
-            $sourceVersion = $versions->firstWhere('rarity', $fromRarity->value) ?? $versions->first();
+            $sourceVersion = $versions->firstWhere('rarity', $fromRarity->value);
 
             if ($sourceVersion === null) {
                 continue;
