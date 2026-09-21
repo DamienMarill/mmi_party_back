@@ -197,8 +197,7 @@ class SchoolYearTransitionService
 
         foreach ($versionsByTemplate as $versions) {
             $baseVersion = $versions->firstWhere('rarity', $fromRarity->value)
-                ?? $versions->firstWhere('rarity', $toRarity->value)
-                ?? $versions->first();
+                ?? $versions->firstWhere('rarity', $toRarity->value);
 
             if ($baseVersion !== null && $baseVersion->rarity !== $toRarity->value) {
                 $idsToUpdate->push($baseVersion->id);
