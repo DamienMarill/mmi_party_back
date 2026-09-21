@@ -18,25 +18,23 @@ class LootboxService
         $rarity = $this->rollRarity($slotIndex);
         $expectedStudentLevel = $this->expectedStudentLevelForRarity($rarity);
 
-        return CardVersion::where('rarity', $rarity)
+        $query = CardVersion::where('rarity', $rarity)
             ->whereHas('cardTemplate', fn ($q) => $q
                 ->where('type', '!=', CardTypes::PROMO)
-                ->where('is_lootable', true)
-                ->where(function ($query) use ($expectedStudentLevel): void {
-                    if ($expectedStudentLevel === null) {
-                        return;
-                    }
+                ->where('is_lootable', true));
 
-                    $query
-                        ->where('type', '!=', CardTypes::STUDENT)
-                        ->orWhere(function ($studentQuery) use ($expectedStudentLevel): void {
-                            $studentQuery
-                                ->where('type', CardTypes::STUDENT)
-                                ->where('level', $expectedStudentLevel);
-                        });
-                }))
-            ->inRandomOrder()
-            ->firstOrFail();
+        if ($expectedStudentLevel !== null) {
+            $query->whereHas('cardTemplate', function ($q) use ($expectedStudentLevel): void {
+                $q->where('type', '!=', CardTypes::STUDENT)
+                    ->orWhere(function ($studentQuery) use ($expectedStudentLevel): void {
+                        $studentQuery
+                            ->where('type', CardTypes::STUDENT)
+                            ->where('level', $expectedStudentLevel);
+                    });
+            });
+        }
+
+        return $query->inRandomOrder()->firstOrFail();
     }
 
     private function expectedStudentLevelForRarity(CardRarity $rarity): ?int
