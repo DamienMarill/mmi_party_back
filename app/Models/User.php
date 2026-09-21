@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\CardRarity;
+use App\Enums\CardTypes;
 use App\Enums\UserGroups;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -62,6 +64,15 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::updated(function (self $user): void {
+            if ($user->wasChanged('groupe')) {
+                $user->syncOwnedCardRaritiesWithGroupe();
+            }
+        });
+    }
+
     public function rules()
     {
         return [
@@ -108,6 +119,42 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
     public function routeNotificationForMail(): string
     {
         return $this->um_email;
+    }
+
+    public function syncOwnedCardRaritiesWithGroupe(): void
+    {
+        $targetRarity = $this->promoRarity();
+
+        if (! $targetRarity) {
+            return;
+        }
+
+        CardVersion::query()
+            ->whereIn('rarity', self::promotableCardRarities())
+            ->whereHas('cardTemplate', function ($query): void {
+                $query->where('base_user', $this->id)
+                    ->where('type', CardTypes::STUDENT);
+            })
+            ->update(['rarity' => $targetRarity->value]);
+    }
+
+    public function promoRarity(): ?CardRarity
+    {
+        return match ($this->groupe) {
+            UserGroups::MMI1 => CardRarity::COMMON,
+            UserGroups::MMI2 => CardRarity::UNCOMMON,
+            UserGroups::MMI3 => CardRarity::RARE,
+            default => null,
+        };
+    }
+
+    public static function promotableCardRarities(): array
+    {
+        return [
+            CardRarity::COMMON->value,
+            CardRarity::UNCOMMON->value,
+            CardRarity::RARE->value,
+        ];
     }
 
     // Hub relations

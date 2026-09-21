@@ -52,7 +52,7 @@ class UserResource extends Resource
                             ->label('Groupe')
                             ->options(
                                 collect(UserGroups::cases())
-                                    ->mapWithKeys(fn (UserGroups $group) => [$group->value => $group->label()])
+                                    ->mapWithKeys(fn(UserGroups $group) => [$group->value => $group->label()])
                                     ->toArray()
                             )
                             ->required(),
@@ -80,9 +80,9 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Mot de passe')
                             ->password()
-                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? bcrypt($state) : null)
-                            ->dehydrated(fn (?string $state): bool => filled($state))
-                            ->required(fn (string $operation): bool => $operation === 'create')
+                            ->dehydrateStateUsing(fn(?string $state): ?string => filled($state) ? bcrypt($state) : null)
+                            ->dehydrated(fn(?string $state): bool => filled($state))
+                            ->required(fn(string $operation): bool => $operation === 'create')
                             ->maxLength(255),
 
                         Forms\Components\DateTimePicker::make('email_verified_at')
@@ -95,7 +95,7 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with('mmii'))
+            ->modifyQueryUsing(fn($query) => $query->with('mmii'))
             ->columns([
                 Tables\Columns\ViewColumn::make('mmii_avatar')
                     ->label('MMII')
@@ -118,7 +118,7 @@ class UserResource extends Resource
 
                 Tables\Columns\TextColumn::make('groupe')
                     ->label('Groupe')
-                    ->formatStateUsing(fn (UserGroups $state): string => $state->label())
+                    ->formatStateUsing(fn(UserGroups $state): string => $state->label())
                     ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_admin')
@@ -147,7 +147,7 @@ class UserResource extends Resource
                     ->label('Groupe')
                     ->options(
                         collect(UserGroups::cases())
-                            ->mapWithKeys(fn (UserGroups $group) => [$group->value => $group->label()])
+                            ->mapWithKeys(fn(UserGroups $group) => [$group->value => $group->label()])
                             ->toArray()
                     ),
 
@@ -163,6 +163,23 @@ class UserResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('changeGroupe')
+                        ->label('Changer le groupe')
+                        ->icon('heroicon-o-user-group')
+                        ->form([
+                            Forms\Components\Select::make('groupe')
+                                ->label('Nouveau groupe')
+                                ->options(
+                                    collect(UserGroups::cases())
+                                        ->mapWithKeys(fn(UserGroups $group) => [$group->value => $group->label()])
+                                        ->toArray()
+                                )
+                                ->required(),
+                        ])
+                        ->action(function (array $data, $records) {
+                            $records->each(fn(User $record) => $record->update(['groupe' => $data['groupe']]));
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
