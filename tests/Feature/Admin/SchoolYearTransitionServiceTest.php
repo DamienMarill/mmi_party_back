@@ -37,6 +37,10 @@ class SchoolYearTransitionServiceTest extends TestCase
             'card_template_id' => $mmi1Template->id,
             'rarity' => CardRarity::COMMON,
         ]);
+        $mmi1SecondBaseVersion = CardVersion::factory()->create([
+            'card_template_id' => $mmi1Template->id,
+            'rarity' => CardRarity::COMMON,
+        ]);
         $mmi1ExtraVersion = CardVersion::factory()->create([
             'card_template_id' => $mmi1Template->id,
             'rarity' => CardRarity::RARE,
@@ -98,6 +102,10 @@ class SchoolYearTransitionServiceTest extends TestCase
 
         $this->assertDatabaseHas('card_versions', [
             'card_template_id' => $mmi1Template->id,
+            'rarity' => CardRarity::UNCOMMON->value,
+        ]);
+        $this->assertDatabaseHas('card_versions', [
+            'id' => $mmi1SecondBaseVersion->id,
             'rarity' => CardRarity::UNCOMMON->value,
         ]);
         $this->assertDatabaseHas('card_versions', [
@@ -167,6 +175,34 @@ class SchoolYearTransitionServiceTest extends TestCase
         $this->assertDatabaseMissing('card_versions', [
             'card_template_id' => $template->id,
             'rarity' => CardRarity::UNCOMMON->value,
+        ]);
+    }
+
+    public function test_it_does_not_change_epic_versions_during_transition(): void
+    {
+        $service = app(SchoolYearTransitionService::class);
+
+        $mmi1Real = User::factory()->create(['groupe' => UserGroups::MMI1, 'moodle_id' => 888]);
+        $template = CardTemplate::factory()->create([
+            'type' => CardTypes::STUDENT,
+            'level' => 1,
+            'base_user' => $mmi1Real->id,
+            'is_lootable' => true,
+        ]);
+        $epicVersion = CardVersion::factory()->create([
+            'card_template_id' => $template->id,
+            'rarity' => CardRarity::EPIC,
+        ]);
+        CardVersion::factory()->create([
+            'card_template_id' => $template->id,
+            'rarity' => CardRarity::COMMON,
+        ]);
+
+        $service->execute('2028-2029', ['mmi1' => 0, 'mmi2' => 0, 'mmi3' => 0]);
+
+        $this->assertDatabaseHas('card_versions', [
+            'id' => $epicVersion->id,
+            'rarity' => CardRarity::EPIC->value,
         ]);
     }
 
