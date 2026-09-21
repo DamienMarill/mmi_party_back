@@ -181,36 +181,47 @@ class SchoolYearTransitionService
 
     private function synchronizeBaseRarity(Collection $templateIds, CardRarity $fromRarity, CardRarity $toRarity): void
     {
-        foreach ($templateIds as $templateId) {
-            $baseVersions = CardVersion::query()
-                ->where('card_template_id', $templateId)
-                ->whereIn('rarity', [
-                    CardRarity::COMMON->value,
-                    CardRarity::UNCOMMON->value,
-                    CardRarity::RARE->value,
-                ])
-                ->orderBy('created_at')
-                ->orderBy('id')
-                ->get(['id', 'rarity']);
+        $baseVersionsByTemplate = CardVersion::query()
+            ->whereIn('card_template_id', $templateIds)
+            ->whereIn('rarity', [
+                CardRarity::COMMON->value,
+                CardRarity::UNCOMMON->value,
+                CardRarity::RARE->value,
+            ])
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get(['id', 'card_template_id', 'rarity'])
+            ->groupBy('card_template_id');
 
-            if ($baseVersions->isEmpty()) {
+        $idsToKeep = collect();
+        $idsToDelete = collect();
+
+        foreach ($baseVersionsByTemplate as $versions) {
+            $sourceVersion = $versions->firstWhere('rarity', $fromRarity->value) ?? $versions->first();
+
+            if ($sourceVersion === null) {
                 continue;
             }
 
-            $sourceVersion = $baseVersions->firstWhere('rarity', $fromRarity->value) ?? $baseVersions->first();
+            $idsToKeep->push($sourceVersion->id);
 
+            $idsToDelete = $idsToDelete->merge(
+                $versions
+                    ->pluck('id')
+                    ->reject(fn (string $id): bool => $id === $sourceVersion->id)
+            );
+        }
+
+        if ($idsToKeep->isNotEmpty()) {
             CardVersion::query()
-                ->whereKey($sourceVersion->id)
+                ->whereIn('id', $idsToKeep)
                 ->update(['rarity' => $toRarity->value]);
+        }
 
-            $duplicateIds = $baseVersions
-                ->pluck('id')
-                ->reject(fn (string $id): bool => $id === $sourceVersion->id)
-                ->values();
-
-            if ($duplicateIds->isNotEmpty()) {
-                CardVersion::query()->whereIn('id', $duplicateIds)->delete();
-            }
+        if ($idsToDelete->isNotEmpty()) {
+            CardVersion::query()
+                ->whereIn('id', $idsToDelete->unique()->values())
+                ->delete();
         }
     }
 }

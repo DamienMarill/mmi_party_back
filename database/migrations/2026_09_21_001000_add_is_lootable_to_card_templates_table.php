@@ -13,13 +13,15 @@ return new class extends Migration {
             $table->boolean('is_lootable')->default(true)->after('base_user');
         });
 
-        DB::statement("
-            UPDATE card_templates ct
-            INNER JOIN users u ON u.id = ct.base_user
-            SET ct.is_lootable = 0
-            WHERE ct.type = '".CardTypes::STUDENT->value."'
-              AND u.groupe = 'alumni'
-        ");
+        DB::table('card_templates')
+            ->where('type', CardTypes::STUDENT->value)
+            ->whereExists(function ($query): void {
+                $query->select(DB::raw(1))
+                    ->from('users')
+                    ->whereColumn('users.id', 'card_templates.base_user')
+                    ->where('users.groupe', 'alumni');
+            })
+            ->update(['is_lootable' => false]);
     }
 
     public function down(): void
