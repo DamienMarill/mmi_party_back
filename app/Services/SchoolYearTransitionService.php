@@ -188,8 +188,6 @@ class SchoolYearTransitionService
                 CardRarity::UNCOMMON->value,
                 CardRarity::RARE->value,
             ])
-            ->orderBy('created_at')
-            ->orderBy('id')
             ->get(['id', 'card_template_id', 'rarity', 'image'])
             ->groupBy('card_template_id');
 

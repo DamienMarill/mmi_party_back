@@ -18,17 +18,22 @@ class LootboxService
     {
         $rarity = $this->rollRarity($slotIndex);
         $studentRarityLevelMap = Config::get('app.student_rarity_level_map', []);
+        $expectedStudentLevel = array_key_exists($rarity->value, $studentRarityLevelMap)
+            ? (int) $studentRarityLevelMap[$rarity->value]
+            : null;
 
         $query = CardVersion::where('rarity', $rarity)
-            ->whereHas('cardTemplate', fn ($q) => $q
-                ->where('type', '!=', CardTypes::PROMO)
-                ->where('is_lootable', true));
+            ->whereHas('cardTemplate', function (Builder $templateQuery) use ($expectedStudentLevel): void {
+                $templateQuery
+                    ->where('type', '!=', CardTypes::PROMO)
+                    ->where('is_lootable', true);
 
-        if (array_key_exists($rarity->value, $studentRarityLevelMap)) {
-            $this->applyStudentRarityProgressionFilter($query, (int) $studentRarityLevelMap[$rarity->value]);
-        } else {
-            $this->allowUnmappedStudentRarity($query);
-        }
+                if ($expectedStudentLevel !== null) {
+                    $this->applyStudentRarityProgressionFilter($templateQuery, $expectedStudentLevel);
+                } else {
+                    $this->allowUnmappedStudentRarity($templateQuery);
+                }
+            });
 
         return $query->inRandomOrder()->firstOrFail();
     }
