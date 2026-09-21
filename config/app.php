@@ -142,6 +142,13 @@ return [
     ],
     'lootbox_avaibility' => 24,
 
+    // Règle métier : progression promo -> rareté des cartes étudiantes lootables
+    'student_rarity_level_map' => [
+        'common' => 1,
+        'uncommon' => 2,
+        'rare' => 3,
+    ],
+
     'front_url' => env('APP_FRONT_URL', 'http://localhost:3000'),
 
 ];

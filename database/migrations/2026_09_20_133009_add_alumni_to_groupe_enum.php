@@ -11,6 +11,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE users MODIFY COLUMN groupe ENUM('student', 'staff', 'mmi1', 'mmi2', 'mmi3', 'misc')");
+        throw new \RuntimeException('Cette migration n\'est pas réversible sans risque de corruption des données alumni.');
     }
 };

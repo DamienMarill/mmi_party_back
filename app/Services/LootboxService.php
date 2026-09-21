@@ -8,6 +8,7 @@ use App\Enums\LootboxTypes;
 use App\Models\CardVersion;
 use App\Models\Lootbox;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Config;
 
 class LootboxService
@@ -16,11 +17,43 @@ class LootboxService
     public function generateLoot(int $slotIndex): CardVersion
     {
         $rarity = $this->rollRarity($slotIndex);
+        $studentRarityLevelMap = Config::get('app.student_rarity_level_map', []);
+        $expectedStudentLevel = array_key_exists($rarity->value, $studentRarityLevelMap)
+            ? (int) $studentRarityLevelMap[$rarity->value]
+            : null;
 
-        return CardVersion::where('rarity', $rarity)
-            ->whereHas('cardTemplate', fn ($q) => $q->where('type', '!=', CardTypes::PROMO))
-            ->orderByRaw('RAND()')
-            ->firstOrFail();
+        $query = CardVersion::where('rarity', $rarity)
+            ->whereHas('cardTemplate', function (Builder $templateQuery) use ($expectedStudentLevel): void {
+                $templateQuery
+                    ->where('type', '!=', CardTypes::PROMO)
+                    ->where('is_lootable', true);
+
+                if ($expectedStudentLevel !== null) {
+                    $this->applyStudentRarityProgressionFilter($templateQuery, $expectedStudentLevel);
+                } else {
+                    $this->allowUnmappedStudentRarity($templateQuery);
+                }
+            });
+
+        return $query->inRandomOrder()->firstOrFail();
+    }
+
+    private function applyStudentRarityProgressionFilter(Builder $query, int $expectedStudentLevel): void
+    {
+        $query->where(function (Builder $templateQuery) use ($expectedStudentLevel): void {
+            $templateQuery
+                ->where('type', '!=', CardTypes::STUDENT->value)
+                ->orWhere(function (Builder $studentQuery) use ($expectedStudentLevel): void {
+                    $studentQuery
+                        ->where('type', CardTypes::STUDENT->value)
+                        ->where('level', $expectedStudentLevel);
+                });
+        });
+    }
+
+    private function allowUnmappedStudentRarity(Builder $query): void
+    {
+        // Explicitly keep student cards eligible for rarities not mapped in progression rules (e.g. epic/legendary).
     }
 
     private function rollRarity(int $slotIndex): CardRarity

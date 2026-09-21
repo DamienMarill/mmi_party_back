@@ -23,6 +23,7 @@ class CardTemplate extends Model
         'shape',
         'mmii_id',
         'base_user',
+        'is_lootable',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class CardTemplate extends Model
         'level' => 'integer',
         'stats' => 'array',
         'shape' => 'array',
+        'is_lootable' => 'boolean',
     ];
 
     public function rules()
@@ -77,6 +79,7 @@ class CardTemplate extends Model
             ],
             'mmii_id' => ['nullable', 'exists:mmiis,id'],
             'base_user' => ['nullable', 'exists:users,id'],
+            'is_lootable' => ['required', 'boolean'],
         ];
     }
 

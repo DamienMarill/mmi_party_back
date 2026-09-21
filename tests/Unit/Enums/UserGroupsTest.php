@@ -11,7 +11,7 @@ class UserGroupsTest extends TestCase
 
     public function test_has_all_expected_groups(): void
     {
-        $expected = ['student', 'staff', 'mmi1', 'mmi2', 'mmi3', 'misc'];
+        $expected = ['student', 'staff', 'mmi1', 'mmi2', 'mmi3', 'alumni', 'misc'];
         $actual = UserGroups::values();
 
         $this->assertEquals($expected, $actual);
@@ -19,7 +19,7 @@ class UserGroupsTest extends TestCase
 
     public function test_cases_count(): void
     {
-        $this->assertCount(6, UserGroups::cases());
+        $this->assertCount(7, UserGroups::cases());
     }
 
     // ========== Tests des labels ==========
@@ -52,6 +52,11 @@ class UserGroupsTest extends TestCase
     public function test_misc_label(): void
     {
         $this->assertEquals('Divers', UserGroups::MISC->label());
+    }
+
+    public function test_alumni_label(): void
+    {
+        $this->assertEquals('Alumni', UserGroups::ALUMNI->label());
     }
 
     // ========== Tests de conversion ==========
