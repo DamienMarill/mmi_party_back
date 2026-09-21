@@ -142,6 +142,34 @@ class SchoolYearTransitionServiceTest extends TestCase
         $service->execute('2026-2027', ['mmi1' => 1, 'mmi2' => 1, 'mmi3' => 1]);
     }
 
+    public function test_it_skips_template_when_source_rarity_is_missing(): void
+    {
+        $service = app(SchoolYearTransitionService::class);
+
+        $mmi1Real = User::factory()->create(['groupe' => UserGroups::MMI1, 'moodle_id' => 555]);
+        $template = CardTemplate::factory()->create([
+            'type' => CardTypes::STUDENT,
+            'level' => 1,
+            'base_user' => $mmi1Real->id,
+            'is_lootable' => true,
+        ]);
+        CardVersion::factory()->create([
+            'card_template_id' => $template->id,
+            'rarity' => CardRarity::RARE,
+        ]);
+
+        $service->execute('2027-2028', ['mmi1' => 0, 'mmi2' => 0, 'mmi3' => 0]);
+
+        $this->assertDatabaseHas('card_versions', [
+            'card_template_id' => $template->id,
+            'rarity' => CardRarity::RARE->value,
+        ]);
+        $this->assertDatabaseMissing('card_versions', [
+            'card_template_id' => $template->id,
+            'rarity' => CardRarity::UNCOMMON->value,
+        ]);
+    }
+
     private function botCount(UserGroups $group): int
     {
         return User::query()

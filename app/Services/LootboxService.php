@@ -17,15 +17,17 @@ class LootboxService
     public function generateLoot(int $slotIndex): CardVersion
     {
         $rarity = $this->rollRarity($slotIndex);
-        $expectedStudentLevel = $this->expectedStudentLevelForRarity($rarity);
+        $studentRarityLevelMap = Config::get('app.student_rarity_level_map', []);
 
         $query = CardVersion::where('rarity', $rarity)
             ->whereHas('cardTemplate', fn ($q) => $q
                 ->where('type', '!=', CardTypes::PROMO)
                 ->where('is_lootable', true));
 
-        if ($expectedStudentLevel !== null) {
-            $this->applyStudentRarityProgressionFilter($query, $expectedStudentLevel);
+        if (array_key_exists($rarity->value, $studentRarityLevelMap)) {
+            $this->applyStudentRarityProgressionFilter($query, (int) $studentRarityLevelMap[$rarity->value]);
+        } else {
+            $this->allowUnmappedStudentRarity($query);
         }
 
         return $query->inRandomOrder()->firstOrFail();
@@ -43,12 +45,9 @@ class LootboxService
         });
     }
 
-    private function expectedStudentLevelForRarity(CardRarity $rarity): ?int
+    private function allowUnmappedStudentRarity(Builder $query): void
     {
-        $map = Config::get('app.student_rarity_level_map', []);
-        $level = $map[$rarity->value] ?? null;
-
-        return is_numeric($level) ? (int) $level : null;
+        // Explicitly keep student cards eligible for rarities not mapped in progression rules (e.g. epic/legendary).
     }
 
     private function rollRarity(int $slotIndex): CardRarity
