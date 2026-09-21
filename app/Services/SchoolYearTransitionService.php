@@ -11,7 +11,6 @@ use App\Models\SchoolYearTransition;
 use App\Models\User;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -124,15 +123,14 @@ class SchoolYearTransitionService
 
     private function syncStudentCardsBeforePromotion(): void
     {
-        $this->syncStudentCardsForGroup(UserGroups::MMI1, 2, CardRarity::COMMON, CardRarity::UNCOMMON, true);
-        $this->syncStudentCardsForGroup(UserGroups::MMI2, 3, CardRarity::UNCOMMON, CardRarity::RARE, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI1, 2, CardRarity::UNCOMMON, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI2, 3, CardRarity::RARE, true);
         $this->markSeniorCardsAsNonLootable();
     }
 
     private function syncStudentCardsForGroup(
         UserGroups $group,
         int $level,
-        CardRarity $fromRarity,
         CardRarity $toRarity,
         bool $isLootable
     ): void {
@@ -154,7 +152,7 @@ class SchoolYearTransitionService
                 'is_lootable' => $isLootable,
             ]);
 
-        $this->synchronizeBaseRarity($templateIds, $fromRarity, $toRarity);
+        $this->synchronizeBaseRarity($templateIds, $toRarity);
     }
 
     private function markSeniorCardsAsNonLootable(): void
@@ -176,39 +174,18 @@ class SchoolYearTransitionService
                 'is_lootable' => false,
             ]);
 
-        $this->synchronizeBaseRarity($templateIds, CardRarity::RARE, CardRarity::RARE);
+        $this->synchronizeBaseRarity($templateIds, CardRarity::RARE);
     }
 
-    private function synchronizeBaseRarity(Collection $templateIds, CardRarity $fromRarity, CardRarity $toRarity): void
+    private function synchronizeBaseRarity(Collection $templateIds, CardRarity $toRarity): void
     {
-        $baseVersionsByTemplate = CardVersion::query()
+        CardVersion::query()
             ->whereIn('card_template_id', $templateIds)
             ->whereIn('rarity', [
                 CardRarity::COMMON->value,
                 CardRarity::UNCOMMON->value,
                 CardRarity::RARE->value,
             ])
-            ->orderBy('created_at')
-            ->orderBy('id')
-            ->get(['id', 'card_template_id', 'rarity'])
-            ->groupBy('card_template_id');
-
-        $idsToKeep = collect();
-
-        foreach ($baseVersionsByTemplate as $versions) {
-            $sourceVersion = $versions->firstWhere('rarity', $fromRarity->value) ?? $versions->first();
-
-            if ($sourceVersion === null) {
-                continue;
-            }
-
-            $idsToKeep->push($sourceVersion->id);
-        }
-
-        if ($idsToKeep->isNotEmpty()) {
-            CardVersion::query()
-                ->whereIn('id', $idsToKeep)
-                ->update(['rarity' => $toRarity->value]);
-        }
+            ->update(['rarity' => $toRarity->value]);
     }
 }

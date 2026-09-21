@@ -102,7 +102,7 @@ class SchoolYearTransitionServiceTest extends TestCase
         ]);
         $this->assertDatabaseHas('card_versions', [
             'id' => $mmi1ExtraVersion->id,
-            'rarity' => CardRarity::RARE->value,
+            'rarity' => CardRarity::UNCOMMON->value,
         ]);
         $this->assertDatabaseHas('card_instances', [
             'card_version_id' => $mmi1ExtraVersion->id,
