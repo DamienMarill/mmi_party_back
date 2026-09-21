@@ -8,6 +8,7 @@ use App\Enums\LootboxTypes;
 use App\Models\CardVersion;
 use App\Models\Lootbox;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Config;
 
 class LootboxService
@@ -30,7 +31,7 @@ class LootboxService
         return $query->inRandomOrder()->firstOrFail();
     }
 
-    private function applyStudentRarityProgressionFilter($query, int $expectedStudentLevel): void
+    private function applyStudentRarityProgressionFilter(Builder $query, int $expectedStudentLevel): void
     {
         $query->whereHas('cardTemplate', function ($q) use ($expectedStudentLevel): void {
             $q->where('type', '!=', CardTypes::STUDENT)
