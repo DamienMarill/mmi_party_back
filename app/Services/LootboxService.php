@@ -16,13 +16,37 @@ class LootboxService
     public function generateLoot(int $slotIndex): CardVersion
     {
         $rarity = $this->rollRarity($slotIndex);
+        $expectedStudentLevel = $this->expectedStudentLevelForRarity($rarity);
 
         return CardVersion::where('rarity', $rarity)
             ->whereHas('cardTemplate', fn ($q) => $q
                 ->where('type', '!=', CardTypes::PROMO)
-                ->where('is_lootable', true))
+                ->where('is_lootable', true)
+                ->where(function ($query) use ($expectedStudentLevel): void {
+                    if ($expectedStudentLevel === null) {
+                        return;
+                    }
+
+                    $query
+                        ->where('type', '!=', CardTypes::STUDENT)
+                        ->orWhere(function ($studentQuery) use ($expectedStudentLevel): void {
+                            $studentQuery
+                                ->where('type', CardTypes::STUDENT)
+                                ->where('level', $expectedStudentLevel);
+                        });
+                }))
             ->inRandomOrder()
             ->firstOrFail();
+    }
+
+    private function expectedStudentLevelForRarity(CardRarity $rarity): ?int
+    {
+        return match ($rarity) {
+            CardRarity::COMMON => 1,
+            CardRarity::UNCOMMON => 2,
+            CardRarity::RARE => 3,
+            default => null,
+        };
     }
 
     private function rollRarity(int $slotIndex): CardRarity

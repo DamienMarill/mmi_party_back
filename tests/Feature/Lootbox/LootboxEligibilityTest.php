@@ -19,6 +19,7 @@ class LootboxEligibilityTest extends TestCase
     {
         $lootableTemplate = CardTemplate::factory()->create([
             'type' => CardTypes::STUDENT,
+            'level' => 1,
             'is_lootable' => true,
         ]);
         $lootableVersion = CardVersion::factory()->create([
@@ -28,6 +29,7 @@ class LootboxEligibilityTest extends TestCase
 
         $nonLootableTemplate = CardTemplate::factory()->create([
             'type' => CardTypes::STUDENT,
+            'level' => 1,
             'is_lootable' => false,
         ]);
         CardVersion::factory()->create([
@@ -45,6 +47,7 @@ class LootboxEligibilityTest extends TestCase
     {
         $nonLootableTemplate = CardTemplate::factory()->create([
             'type' => CardTypes::STUDENT,
+            'level' => 1,
             'is_lootable' => false,
         ]);
         CardVersion::factory()->create([

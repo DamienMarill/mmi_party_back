@@ -190,24 +190,28 @@ class SchoolYearTransitionService
             ])
             ->orderBy('created_at')
             ->orderBy('id')
-            ->get(['id', 'card_template_id', 'rarity'])
+            ->get(['id', 'card_template_id', 'rarity', 'image'])
             ->groupBy('card_template_id');
 
-        $idsToUpdate = collect();
+        foreach ($templateIds as $templateId) {
+            $versions = $versionsByTemplate->get($templateId, collect());
 
-        foreach ($versionsByTemplate as $versions) {
-            $baseVersion = $versions->firstWhere('rarity', $fromRarity->value)
-                ?? $versions->firstWhere('rarity', $toRarity->value);
-
-            if ($baseVersion !== null && $baseVersion->rarity !== $toRarity->value) {
-                $idsToUpdate->push($baseVersion->id);
+            if ($versions->contains('rarity', $toRarity->value)) {
+                continue;
             }
-        }
 
-        if ($idsToUpdate->isNotEmpty()) {
+            $sourceVersion = $versions->firstWhere('rarity', $fromRarity->value) ?? $versions->first();
+
+            if ($sourceVersion === null) {
+                continue;
+            }
+
             CardVersion::query()
-                ->whereIn('id', $idsToUpdate->unique()->values())
-                ->update(['rarity' => $toRarity->value]);
+                ->create([
+                    'card_template_id' => $templateId,
+                    'rarity' => $toRarity->value,
+                    'image' => $sourceVersion->image,
+                ]);
         }
     }
 }
