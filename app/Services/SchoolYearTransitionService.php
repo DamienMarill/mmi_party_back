@@ -181,9 +181,34 @@ class SchoolYearTransitionService
 
     private function synchronizeBaseRarity(Collection $templateIds, CardRarity $fromRarity, CardRarity $toRarity): void
     {
-        CardVersion::query()
+        $versionsByTemplate = CardVersion::query()
             ->whereIn('card_template_id', $templateIds)
-            ->where('rarity', $fromRarity->value)
-            ->update(['rarity' => $toRarity->value]);
+            ->whereIn('rarity', [
+                CardRarity::COMMON->value,
+                CardRarity::UNCOMMON->value,
+                CardRarity::RARE->value,
+            ])
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get(['id', 'card_template_id', 'rarity'])
+            ->groupBy('card_template_id');
+
+        $idsToUpdate = collect();
+
+        foreach ($versionsByTemplate as $versions) {
+            $baseVersion = $versions->firstWhere('rarity', $fromRarity->value)
+                ?? $versions->firstWhere('rarity', $toRarity->value)
+                ?? $versions->first();
+
+            if ($baseVersion !== null && $baseVersion->rarity !== $toRarity->value) {
+                $idsToUpdate->push($baseVersion->id);
+            }
+        }
+
+        if ($idsToUpdate->isNotEmpty()) {
+            CardVersion::query()
+                ->whereIn('id', $idsToUpdate->unique()->values())
+                ->update(['rarity' => $toRarity->value]);
+        }
     }
 }

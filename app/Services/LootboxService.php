@@ -8,6 +8,7 @@ use App\Enums\LootboxTypes;
 use App\Models\CardVersion;
 use App\Models\Lootbox;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Config;
 
 class LootboxService
@@ -17,11 +18,21 @@ class LootboxService
     {
         $rarity = $this->rollRarity($slotIndex);
 
-        return CardVersion::where('rarity', $rarity)
+        $query = CardVersion::where('rarity', $rarity)
             ->whereHas('cardTemplate', fn ($q) => $q
                 ->where('type', '!=', CardTypes::PROMO)
-                ->where('is_lootable', true))
-            ->orderByRaw('RAND()')
+                ->where('is_lootable', true));
+
+        $count = (clone $query)->count();
+
+        if ($count === 0) {
+            throw (new ModelNotFoundException())->setModel(CardVersion::class);
+        }
+
+        $offset = random_int(0, $count - 1);
+
+        return $query
+            ->skip($offset)
             ->firstOrFail();
     }
 
