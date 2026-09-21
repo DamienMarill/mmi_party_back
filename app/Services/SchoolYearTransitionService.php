@@ -125,8 +125,7 @@ class SchoolYearTransitionService
     {
         $this->syncStudentCardsForGroup(UserGroups::MMI1, 2, CardRarity::COMMON, CardRarity::UNCOMMON, true);
         $this->syncStudentCardsForGroup(UserGroups::MMI2, 3, CardRarity::UNCOMMON, CardRarity::RARE, true);
-        $this->syncStudentCardsForGroup(UserGroups::ALUMNI, 3, CardRarity::RARE, CardRarity::RARE, false);
-        $this->syncStudentCardsForGroup(UserGroups::MMI3, 3, CardRarity::RARE, CardRarity::RARE, false);
+        $this->markSeniorCardsAsNonLootable();
     }
 
     private function syncStudentCardsForGroup(
@@ -158,5 +157,33 @@ class SchoolYearTransitionService
             ->whereIn('card_template_id', $templateIds)
             ->where('rarity', $fromRarity->value)
             ->update(['rarity' => $toRarity->value]);
+    }
+
+    private function markSeniorCardsAsNonLootable(): void
+    {
+        $templateIds = CardTemplate::query()
+            ->where('type', CardTypes::STUDENT->value)
+            ->whereNotNull('base_user')
+            ->whereHas('baseUser', fn (EloquentBuilder $query) => $query->whereIn('groupe', [
+                UserGroups::MMI3->value,
+                UserGroups::ALUMNI->value,
+            ]))
+            ->pluck('id');
+
+        if ($templateIds->isEmpty()) {
+            return;
+        }
+
+        CardTemplate::query()
+            ->whereIn('id', $templateIds)
+            ->update([
+                'level' => 3,
+                'is_lootable' => false,
+            ]);
+
+        CardVersion::query()
+            ->whereIn('card_template_id', $templateIds)
+            ->where('rarity', CardRarity::UNCOMMON->value)
+            ->update(['rarity' => CardRarity::RARE->value]);
     }
 }
