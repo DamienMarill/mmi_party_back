@@ -24,7 +24,6 @@ class LootboxService
                 ->where('is_lootable', true)
                 ->where(function ($query) use ($expectedStudentLevel): void {
                     if ($expectedStudentLevel === null) {
-                        $query->where('type', '!=', CardTypes::STUDENT);
                         return;
                     }
 
