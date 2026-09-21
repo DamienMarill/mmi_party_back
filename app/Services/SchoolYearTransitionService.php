@@ -164,10 +164,7 @@ class SchoolYearTransitionService
         $templateIds = CardTemplate::query()
             ->where('type', CardTypes::STUDENT->value)
             ->whereNotNull('base_user')
-            ->whereHas('baseUser', fn (EloquentBuilder $query) => $query->whereIn('groupe', [
-                UserGroups::MMI3->value,
-                UserGroups::ALUMNI->value,
-            ]))
+            ->whereHas('baseUser', fn (EloquentBuilder $query) => $query->where('groupe', UserGroups::MMI3->value))
             ->pluck('id');
 
         if ($templateIds->isEmpty()) {
