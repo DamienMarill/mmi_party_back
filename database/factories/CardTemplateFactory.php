@@ -46,6 +46,7 @@ class CardTemplateFactory extends Factory
             'shape' => ShapeValidator::generate($level),
             'mmii_id' => null, // A définir si besoin via ->state()
             'base_user' => null, // A définir si besoin via ->state()
+            'is_lootable' => true,
         ];
     }
 
@@ -59,6 +60,7 @@ class CardTemplateFactory extends Factory
             'shape' => null,
             'mmii_id' => null,
             'base_user' => null,
+            'is_lootable' => true,
         ];
     }
 
@@ -92,6 +94,7 @@ class CardTemplateFactory extends Factory
             'shape' => null,
             'mmii_id' => null,
             'base_user' => null,
+            'is_lootable' => true,
         ];
     }
 
@@ -105,6 +108,7 @@ class CardTemplateFactory extends Factory
             'shape' => null,
             'mmii_id' => null,
             'base_user' => null,
+            'is_lootable' => true,
         ];
     }
 

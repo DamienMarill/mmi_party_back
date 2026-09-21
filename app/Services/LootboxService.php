@@ -18,7 +18,9 @@ class LootboxService
         $rarity = $this->rollRarity($slotIndex);
 
         return CardVersion::where('rarity', $rarity)
-            ->whereHas('cardTemplate', fn ($q) => $q->where('type', '!=', CardTypes::PROMO))
+            ->whereHas('cardTemplate', fn ($q) => $q
+                ->where('type', '!=', CardTypes::PROMO)
+                ->where('is_lootable', true))
             ->orderByRaw('RAND()')
             ->firstOrFail();
     }

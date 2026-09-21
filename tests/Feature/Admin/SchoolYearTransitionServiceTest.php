@@ -2,7 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\CardRarity;
+use App\Enums\CardTypes;
 use App\Enums\UserGroups;
+use App\Models\CardTemplate;
+use App\Models\CardVersion;
 use App\Models\User;
 use App\Services\SchoolYearTransitionService;
 use DomainException;
@@ -22,6 +26,39 @@ class SchoolYearTransitionServiceTest extends TestCase
         $mmi2Real = User::factory()->create(['groupe' => UserGroups::MMI2, 'moodle_id' => 102]);
         $mmi3Real = User::factory()->create(['groupe' => UserGroups::MMI3, 'moodle_id' => 103]);
 
+        $mmi1Template = CardTemplate::factory()->create([
+            'type' => CardTypes::STUDENT,
+            'level' => 1,
+            'base_user' => $mmi1Real->id,
+            'is_lootable' => true,
+        ]);
+        CardVersion::factory()->create([
+            'card_template_id' => $mmi1Template->id,
+            'rarity' => CardRarity::COMMON,
+        ]);
+
+        $mmi2Template = CardTemplate::factory()->create([
+            'type' => CardTypes::STUDENT,
+            'level' => 2,
+            'base_user' => $mmi2Real->id,
+            'is_lootable' => true,
+        ]);
+        CardVersion::factory()->create([
+            'card_template_id' => $mmi2Template->id,
+            'rarity' => CardRarity::UNCOMMON,
+        ]);
+
+        $mmi3Template = CardTemplate::factory()->create([
+            'type' => CardTypes::STUDENT,
+            'level' => 3,
+            'base_user' => $mmi3Real->id,
+            'is_lootable' => true,
+        ]);
+        CardVersion::factory()->create([
+            'card_template_id' => $mmi3Template->id,
+            'rarity' => CardRarity::RARE,
+        ]);
+
         User::factory()->count(2)->create(['groupe' => UserGroups::MMI1, 'moodle_id' => null, 'is_admin' => false]);
         User::factory()->count(1)->create(['groupe' => UserGroups::MMI2, 'moodle_id' => null, 'is_admin' => false]);
         User::factory()->count(3)->create(['groupe' => UserGroups::MMI3, 'moodle_id' => null, 'is_admin' => false]);
@@ -32,6 +69,35 @@ class SchoolYearTransitionServiceTest extends TestCase
         $this->assertEquals(UserGroups::MMI2, $mmi1Real->refresh()->groupe);
         $this->assertEquals(UserGroups::MMI3, $mmi2Real->refresh()->groupe);
         $this->assertEquals(UserGroups::ALUMNI, $mmi3Real->refresh()->groupe);
+
+        $this->assertDatabaseHas('card_templates', [
+            'id' => $mmi1Template->id,
+            'level' => 2,
+            'is_lootable' => true,
+        ]);
+        $this->assertDatabaseHas('card_templates', [
+            'id' => $mmi2Template->id,
+            'level' => 3,
+            'is_lootable' => true,
+        ]);
+        $this->assertDatabaseHas('card_templates', [
+            'id' => $mmi3Template->id,
+            'level' => 3,
+            'is_lootable' => false,
+        ]);
+
+        $this->assertDatabaseHas('card_versions', [
+            'card_template_id' => $mmi1Template->id,
+            'rarity' => CardRarity::UNCOMMON->value,
+        ]);
+        $this->assertDatabaseHas('card_versions', [
+            'card_template_id' => $mmi2Template->id,
+            'rarity' => CardRarity::RARE->value,
+        ]);
+        $this->assertDatabaseHas('card_versions', [
+            'card_template_id' => $mmi3Template->id,
+            'rarity' => CardRarity::RARE->value,
+        ]);
 
         $this->assertSame(5, $this->botCount(UserGroups::MMI1));
         $this->assertSame(2, $this->botCount(UserGroups::MMI2));

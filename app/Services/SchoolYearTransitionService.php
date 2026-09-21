@@ -2,7 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\CardRarity;
+use App\Enums\CardTypes;
 use App\Enums\UserGroups;
+use App\Models\CardTemplate;
+use App\Models\CardVersion;
 use App\Models\SchoolYearTransition;
 use App\Models\User;
 use DomainException;
@@ -24,6 +28,7 @@ class SchoolYearTransitionService
             User::query()->where('groupe', UserGroups::MMI3->value)->update(['groupe' => UserGroups::ALUMNI->value]);
             User::query()->where('groupe', UserGroups::MMI2->value)->update(['groupe' => UserGroups::MMI3->value]);
             User::query()->where('groupe', UserGroups::MMI1->value)->update(['groupe' => UserGroups::MMI2->value]);
+            $this->syncStudentCardsAfterPromotion();
 
             $applied = [
                 UserGroups::MMI1->value => $this->syncBotsForTargetPopulation(UserGroups::MMI1, (int) ($targets['mmi1'] ?? 0)),
@@ -113,5 +118,47 @@ class SchoolYearTransitionService
         if (((int) $matches['start']) + 1 !== (int) $matches['end']) {
             throw new DomainException('La seconde année doit être égale à la première + 1.');
         }
+    }
+
+    private function syncStudentCardsAfterPromotion(): void
+    {
+        $this->syncStudentCardsForGroup(UserGroups::MMI1, 1, CardRarity::COMMON, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI2, 2, CardRarity::UNCOMMON, true);
+        $this->syncStudentCardsForGroup(UserGroups::MMI3, 3, CardRarity::RARE, true);
+        $this->syncStudentCardsForGroup(UserGroups::ALUMNI, 3, CardRarity::RARE, false);
+    }
+
+    private function syncStudentCardsForGroup(
+        UserGroups $group,
+        int $level,
+        CardRarity $rarity,
+        bool $isLootable
+    ): void {
+        $templatesQuery = CardTemplate::query()
+            ->where('type', CardTypes::STUDENT->value)
+            ->whereNotNull('base_user')
+            ->whereHas('baseUser', fn (Builder $query) => $query->where('groupe', $group->value));
+
+        $templateIds = $templatesQuery->pluck('id');
+
+        if ($templateIds->isEmpty()) {
+            return;
+        }
+
+        CardTemplate::query()
+            ->whereIn('id', $templateIds)
+            ->update([
+                'level' => $level,
+                'is_lootable' => $isLootable,
+            ]);
+
+        CardVersion::query()
+            ->whereIn('card_template_id', $templateIds)
+            ->whereIn('rarity', [
+                CardRarity::COMMON->value,
+                CardRarity::UNCOMMON->value,
+                CardRarity::RARE->value,
+            ])
+            ->update(['rarity' => $rarity->value]);
     }
 }
