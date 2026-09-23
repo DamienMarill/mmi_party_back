@@ -161,4 +161,30 @@ class CardTemplateTest extends TestCase
 
         $this->assertIsArray($template->shape);
     }
+
+    // ========== Tests de owner_promo (sérialisation) ==========
+
+    public function test_owner_promo_exposes_owner_group_without_leaking_the_user(): void
+    {
+        $user = User::factory()->create(['groupe' => \App\Enums\UserGroups::ALUMNI]);
+        $template = CardTemplate::factory()
+            ->student()
+            ->withLevel(3)
+            ->withBaseUser($user->id)
+            ->create();
+
+        $array = CardTemplate::find($template->id)->toArray();
+
+        $this->assertSame(\App\Enums\UserGroups::ALUMNI->value, $array['owner_promo']);
+        // La relation servant au calcul ne doit jamais fuiter dans le JSON.
+        $this->assertArrayNotHasKey('base_user_promo', $array);
+        $this->assertArrayNotHasKey('baseUserPromo', $array);
+    }
+
+    public function test_owner_promo_is_null_for_unassigned_fictive_card(): void
+    {
+        $template = CardTemplate::factory()->student()->withLevel(1)->create();
+
+        $this->assertNull(CardTemplate::find($template->id)->toArray()['owner_promo']);
+    }
 }

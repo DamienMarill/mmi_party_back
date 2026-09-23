@@ -69,6 +69,7 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
         static::updated(function (self $user): void {
             if ($user->wasChanged('groupe')) {
                 $user->syncOwnedCardRaritiesWithGroupe();
+                $user->syncOwnedCardLootabilityWithGroupe();
             }
         });
     }
@@ -136,6 +137,21 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
                     ->where('type', CardTypes::STUDENT);
             })
             ->update(['rarity' => $targetRarity->value]);
+    }
+
+    /**
+     * Une carte étudiant n'est lootable que tant que son propriétaire n'est pas alumni.
+     * Aligne les changements de groupe manuels (édition admin unitaire) sur ce que fait
+     * SchoolYearTransitionService lors de la transition annuelle : dès qu'un étudiant
+     * devient alumni, ses cartes cessent de tomber dans les boosters (et redeviennent
+     * lootables s'il repasse dans une promo, en cas de correction).
+     */
+    public function syncOwnedCardLootabilityWithGroupe(): void
+    {
+        CardTemplate::query()
+            ->where('base_user', $this->id)
+            ->where('type', CardTypes::STUDENT)
+            ->update(['is_lootable' => $this->groupe !== UserGroups::ALUMNI]);
     }
 
     public function promoRarity(): ?CardRarity
