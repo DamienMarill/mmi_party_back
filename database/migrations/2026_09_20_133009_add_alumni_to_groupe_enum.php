@@ -1,12 +1,19 @@
 <?php
 
+use App\Enums\UserGroups;
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void
     {
-        DB::statement("ALTER TABLE users MODIFY COLUMN groupe ENUM('student', 'staff', 'mmi1', 'mmi2', 'mmi3', 'misc', 'alumni')");
+        // On passe par le schema builder : Laravel génère le DDL adapté au driver
+        // (ENUM natif sur MySQL, contrainte CHECK sur PostgreSQL/SQLite). Les valeurs
+        // sont dérivées de l'enum PHP UserGroups → source de vérité unique et portable.
+        Schema::table('users', function (Blueprint $table): void {
+            $table->enum('groupe', UserGroups::values())->nullable()->change();
+        });
     }
 
     public function down(): void

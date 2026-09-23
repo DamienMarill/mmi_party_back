@@ -8,6 +8,7 @@ use App\Services\StatsValidator;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Enums\CardTypes;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,26 @@ class CardTemplate extends Model
         'shape' => 'array',
         'is_lootable' => 'boolean',
     ];
+
+    protected $appends = ['owner_promo'];
+
+    // Charge en batch la promo du propriétaire (id + groupe uniquement) pour éviter le
+    // N+1 sur les listes de cartes ; la relation elle-même est masquée du JSON.
+    protected $with = ['baseUserPromo'];
+
+    protected $hidden = ['baseUserPromo'];
+
+    /**
+     * Promo réelle du propriétaire de la carte (mmi1, mmi2, mmi3, alumni…), ou null pour
+     * une carte fictive non encore attribuée. Le front s'en sert pour afficher "Alumni"
+     * là où le level, plafonné à 3, ne distingue plus un MMI3 d'un alumni.
+     * Reste correct même sans eager-load (lazy-load de secours), $with n'étant qu'une
+     * optimisation.
+     */
+    public function getOwnerPromoAttribute(): ?string
+    {
+        return $this->baseUserPromo?->groupe?->value;
+    }
 
     public function rules()
     {
@@ -91,6 +112,15 @@ class CardTemplate extends Model
     public function baseUser()
     {
         return $this->belongsTo(User::class, 'base_user');
+    }
+
+    /**
+     * Variante de baseUser limitée à (id, groupe), dédiée à l'accessor owner_promo et
+     * au eager-load automatique ($with) : on ne charge jamais le user complet dans le JSON.
+     */
+    public function baseUserPromo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'base_user')->select(['id', 'groupe']);
     }
 
     public function cardVersions()
