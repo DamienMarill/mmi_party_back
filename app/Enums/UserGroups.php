@@ -9,6 +9,7 @@ enum UserGroups: string
     case MMI1 = 'mmi1';
     case MMI2 = 'mmi2';
     case MMI3 = 'mmi3';
+    case ALUMNI = 'alumni';
     case MISC = 'misc';
 
     public static function values(): array
@@ -24,6 +25,7 @@ enum UserGroups: string
             self::MMI1 => 'MMI 1',
             self::MMI2 => 'MMI 2',
             self::MMI3 => 'MMI 3',
+            self::ALUMNI => 'Alumni',
             self::MISC => 'Divers',
         };
     }

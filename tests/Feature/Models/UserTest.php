@@ -169,4 +169,42 @@ class UserTest extends TestCase
 
         $this->assertArrayNotHasKey('remember_token', $array);
     }
+
+    public function test_group_change_syncs_owned_student_card_rarities(): void
+    {
+        $user = User::factory()->mmi1()->create();
+        $template = CardTemplate::factory()
+            ->student()
+            ->withLevel(1)
+            ->withBaseUser($user->id)
+            ->create();
+
+        $commonVersion = CardVersion::factory()->forTemplate($template)->common()->create();
+        $rareVersion = CardVersion::factory()->forTemplate($template)->rare()->create();
+        $epicVersion = CardVersion::factory()->forTemplate($template)->epic()->create();
+
+        $user->update(['groupe' => UserGroups::MMI2]);
+
+        $this->assertEquals(CardRarity::UNCOMMON, $commonVersion->fresh()->rarity);
+        $this->assertEquals(CardRarity::UNCOMMON, $rareVersion->fresh()->rarity);
+        $this->assertEquals(CardRarity::EPIC, $epicVersion->fresh()->rarity);
+    }
+
+    public function test_group_change_to_non_promo_group_does_not_change_owned_card_rarities(): void
+    {
+        $user = User::factory()->mmi2()->create();
+        $template = CardTemplate::factory()
+            ->student()
+            ->withLevel(2)
+            ->withBaseUser($user->id)
+            ->create();
+
+        $commonVersion = CardVersion::factory()->forTemplate($template)->common()->create();
+        $rareVersion = CardVersion::factory()->forTemplate($template)->rare()->create();
+
+        $user->update(['groupe' => UserGroups::STAFF]);
+
+        $this->assertEquals(CardRarity::COMMON, $commonVersion->fresh()->rarity);
+        $this->assertEquals(CardRarity::RARE, $rareVersion->fresh()->rarity);
+    }
 }
