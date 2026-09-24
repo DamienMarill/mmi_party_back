@@ -68,6 +68,7 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
     {
         static::updated(function (self $user): void {
             if ($user->wasChanged('groupe')) {
+                $user->syncOwnedCardLevelWithGroupe();
                 $user->syncOwnedCardRaritiesWithGroupe();
                 $user->syncOwnedCardLootabilityWithGroupe();
             }
@@ -139,6 +140,14 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
             ->update(['rarity' => $targetRarity->value]);
     }
 
+    public function syncOwnedCardLevelWithGroupe(): void
+    {
+        CardTemplate::query()
+            ->where('base_user', $this->id)
+            ->where('type', CardTypes::STUDENT)
+            ->update(['level' => $this->promoLevel()]);
+    }
+
     /**
      * Une carte étudiant n'est lootable que tant que son propriétaire n'est pas alumni.
      * Aligne les changements de groupe manuels (édition admin unitaire) sur ce que fait
@@ -161,6 +170,15 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
             UserGroups::MMI2 => CardRarity::UNCOMMON,
             UserGroups::MMI3 => CardRarity::RARE,
             default => null,
+        };
+    }
+
+    public function promoLevel(): int
+    {
+        return match ($this->groupe) {
+            UserGroups::MMI1 => 1,
+            UserGroups::MMI2 => 2,
+            default => 3,
         };
     }
 

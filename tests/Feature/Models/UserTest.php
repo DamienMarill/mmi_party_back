@@ -190,6 +190,20 @@ class UserTest extends TestCase
         $this->assertEquals(CardRarity::EPIC, $epicVersion->fresh()->rarity);
     }
 
+    public function test_group_change_syncs_owned_student_card_level(): void
+    {
+        $user = User::factory()->mmi1()->create();
+        $template = CardTemplate::factory()
+            ->student()
+            ->withLevel(1)
+            ->withBaseUser($user->id)
+            ->create();
+
+        $user->update(['groupe' => UserGroups::MMI2]);
+
+        $this->assertSame(2, $template->fresh()->level);
+    }
+
     public function test_group_change_to_non_promo_group_does_not_change_owned_card_rarities(): void
     {
         $user = User::factory()->mmi2()->create();
