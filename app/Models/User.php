@@ -142,10 +142,16 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
 
     public function syncOwnedCardLevelWithGroupe(): void
     {
+        $targetLevel = $this->promoLevel();
+
+        if ($targetLevel === null) {
+            return;
+        }
+
         CardTemplate::query()
             ->where('base_user', $this->id)
             ->where('type', CardTypes::STUDENT)
-            ->update(['level' => $this->promoLevel()]);
+            ->update(['level' => $targetLevel]);
     }
 
     /**
@@ -173,12 +179,13 @@ class User extends Authenticatable implements FilamentUser, JWTSubject, MustVeri
         };
     }
 
-    public function promoLevel(): int
+    public function promoLevel(): ?int
     {
         return match ($this->groupe) {
             UserGroups::MMI1 => 1,
             UserGroups::MMI2 => 2,
-            default => 3,
+            UserGroups::MMI3 => 3,
+            default => null,
         };
     }
 

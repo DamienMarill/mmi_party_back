@@ -220,6 +220,7 @@ class UserTest extends TestCase
 
         $this->assertEquals(CardRarity::COMMON, $commonVersion->fresh()->rarity);
         $this->assertEquals(CardRarity::RARE, $rareVersion->fresh()->rarity);
+        $this->assertSame(2, $template->fresh()->level);
     }
 
     public function test_group_change_to_alumni_disables_owned_student_card_lootability(): void
@@ -242,7 +243,7 @@ class UserTest extends TestCase
         $user = User::factory()->create(['groupe' => UserGroups::ALUMNI]);
         $template = CardTemplate::factory()
             ->student()
-            ->withLevel(3)
+            ->withLevel(1)
             ->withBaseUser($user->id)
             ->create(['is_lootable' => false]);
 
@@ -250,5 +251,6 @@ class UserTest extends TestCase
 
         $this->assertTrue($template->fresh()->is_lootable);
         $this->assertSame(UserGroups::MMI3->value, $template->fresh()->owner_promo);
+        $this->assertSame(3, $template->fresh()->level);
     }
 }
