@@ -18,6 +18,8 @@ yarn-error.log
 /auth.json
 /.fleet
 /.idea
+# Scripts de génération de tokens (secrets) — ne jamais committer
+/gen_token.php
 /.nova
 /.vscode
 /.zed
