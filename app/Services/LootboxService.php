@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Config;
 
 class LootboxService
 {
-
     public function generateLoot(int $slotIndex): CardVersion
     {
         $rarity = $this->rollRarity($slotIndex);
@@ -35,7 +34,10 @@ class LootboxService
                 }
             });
 
-        return $query->inRandomOrder()->firstOrFail();
+        // Seed aléatoire explicite obligatoire : inRandomOrder() sans argument compile en
+        // RAND(0) sur MySQL (seed figé → toujours la même carte). Voir Laravel #58520 et
+        // le garde-fou tests/Feature/Lootbox/LootboxRandomnessTest.php.
+        return $query->inRandomOrder(random_int(1, PHP_INT_MAX))->firstOrFail();
     }
 
     private function applyStudentRarityProgressionFilter(Builder $query, int $expectedStudentLevel): void
@@ -81,6 +83,7 @@ class LootboxService
     }
 
     private array $availableTimes;
+
     private int $availabilityPeriod;
 
     public function __construct()
@@ -115,7 +118,7 @@ class LootboxService
                 'used' => $isUsed,
             ];
 
-            if (!$isUsed) {
+            if (! $isUsed) {
                 $unusedSlots[] = $slot;
             }
         }
@@ -140,15 +143,15 @@ class LootboxService
             'slotsInfo' => $allSlotsInfo,
             'debug' => [
                 'now' => $now->format('Y-m-d H:i:s'),
-                'availableSlots' => array_map(fn($s) => [
+                'availableSlots' => array_map(fn ($s) => [
                     'time' => $s['time'],
                     'timestamp' => $s['timestamp']->format('Y-m-d H:i:s'),
                 ], $availableSlots),
-                'unusedSlots' => array_map(fn($s) => [
+                'unusedSlots' => array_map(fn ($s) => [
                     'time' => $s['time'],
                     'timestamp' => $s['timestamp']->format('Y-m-d H:i:s'),
                 ], $unusedSlots),
-            ]
+            ],
         ];
     }
 
@@ -179,6 +182,7 @@ class LootboxService
     private function timeToMinutes(string $time): int
     {
         [$hours, $minutes] = explode(':', $time);
+
         return (int) $hours * 60 + (int) $minutes;
     }
 
